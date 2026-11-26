@@ -81,7 +81,7 @@ describe("end-to-end review pipeline", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     generateContent.mockResolvedValue({
-      text: JSON.stringify(modelResponse),
+      text: `Here is the review result:\n\n\`\`\`json\n${JSON.stringify(modelResponse)}\n\`\`\``,
     });
   });
 
