@@ -36,7 +36,7 @@ export class NvidiaProvider implements AIProvider {
       const body = await response.json().catch(() => ({})) as NvidiaErrorBody;
       const error = new Error(
         body.error?.message ?? body.message ?? `NVIDIA API request failed (${response.status}).`,
-      ) as Error & { status: number; code?: number | string };
+      ) as Error & { status: number; code?: number | string | undefined };
       error.status = response.status;
       error.code = body.error?.code;
       throw error;
