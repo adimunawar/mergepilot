@@ -82,11 +82,7 @@ export async function reviewPullRequest(
   return validateReviewResult(decoded, pullRequest);
 }
 
-/**
- * Extract the review object even if a model prepends commentary or wraps it in
- * markdown. Scan balanced JSON objects instead of slicing from the first to
- * last brace, since reasoning text can itself contain braces.
- */
+/** Extract the final review object from plain JSON, fenced JSON, or model commentary. */
 function parseReviewJson(text: string): unknown {
   const trimmed = text.trim();
   if (!trimmed) throw new Error("Empty model response.");
@@ -97,7 +93,7 @@ function parseReviewJson(text: string): unknown {
     // Continue with fenced and embedded JSON extraction.
   }
 
-  const fenced = /\`\`\`(?:json)?\s*([\s\S]*?)\s*\`\`\`/i.exec(trimmed);
+  const fenced = /```(?:json)?\s*([\s\S]*?)\s*```/i.exec(trimmed);
   if (fenced?.[1]) {
     try {
       return JSON.parse(fenced[1]) as unknown;
@@ -118,7 +114,7 @@ function parseReviewJson(text: string): unknown {
       const char = trimmed[end]!;
       if (inString) {
         if (escaped) escaped = false;
-        else if (char === "\\\\") escaped = true;
+        else if (char === "\\") escaped = true;
         else if (char === '"') inString = false;
         continue;
       }
