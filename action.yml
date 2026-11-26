@@ -1,0 +1,51 @@
+name: MergePilot
+description: AI-powered pull request review action (runtime bootstrap)
+author: adimunawar
+
+inputs:
+  gemini-api-key:
+    description: Google Gemini API key (bring your own key)
+    required: true
+  github-token:
+    description: GitHub token used by MergePilot to access pull request data
+    required: true
+  gemini-model:
+    description: Gemini model identifier
+    required: false
+    default: gemini-2.5-flash
+  target-branches:
+    description: Comma-separated target branches to review
+    required: false
+    default: develop
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 24
+
+    - name: Install MergePilot dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm install
+
+    - name: Build MergePilot
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm run build
+
+    - name: Run MergePilot
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        INPUT_GEMINI-API-KEY: ${{ inputs.gemini-api-key }}
+        INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
+        INPUT_GEMINI-MODEL: ${{ inputs.gemini-model }}
+        INPUT_TARGET-BRANCHES: ${{ inputs.target-branches }}
+      run: node dist/index.js
+
+branding:
+  icon: git-pull-request
+  color: blue

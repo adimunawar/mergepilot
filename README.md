@@ -6,7 +6,7 @@ MergePilot is an open-source GitHub pull request reviewer designed to help engin
 
 It starts with Google Gemini and a PStack-inspired review workflow, while keeping the provider and review methodology boundaries extensible.
 
-> Status: early foundation / pre-MVP. APIs and workflows may change.
+> Status: early development / pre-MVP. The GitHub Action runtime bootstrap is being established; AI review execution is not available yet.
 
 ## Goals
 
@@ -16,6 +16,43 @@ It starts with Google Gemini and a PStack-inspired review workflow, while keepin
 - Publish concise GitHub review summaries and inline comments.
 - Let teams provide their own review rules and skills.
 - Keep LLM provider integration replaceable.
+
+## Current status
+
+The Action runtime currently validates its inputs and pull request context. It does **not** call Gemini, inspect diffs, or publish review comments yet. Those capabilities will be implemented in subsequent milestones.
+
+## Usage (runtime smoke test)
+
+Add this workflow to a consuming repository at `.github/workflows/mergepilot.yml`:
+
+```yaml
+name: MergePilot
+
+on:
+  pull_request:
+    branches: [develop]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run MergePilot
+        uses: adimunawar/mergepilot@feat/github-action-runtime
+        with:
+          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          gemini-model: gemini-2.5-flash
+          target-branches: develop
+```
+
+The branch reference above is for testing this development branch. Once a release is published, consumers should use a version tag such as `@v1`.
+
+Each consuming repository supplies its own Gemini API key (BYOK) through GitHub Actions secrets. Never commit API keys.
 
 ## Non-goals for the initial MVP
 
@@ -41,47 +78,14 @@ MergePilot CLI / Review Orchestrator
     `-- Review publisher (summary + inline comments)
 ```
 
-## Planned workflow
+## Configuration
 
-1. Trigger on `pull_request` events: `opened`, `synchronize`, and `reopened`.
-2. Ignore PRs whose base branch is not configured.
-3. Collect PR metadata, changed files, diff hunks, and limited related context.
-4. Load global and project-specific review instructions.
-5. Run the review workflow using the configured Gemini model.
-6. Validate findings: evidence, severity, confidence, and changed-line anchoring.
-7. Publish a single review summary and valid inline comments.
-8. Record the reviewed commit SHA to avoid duplicate reviews.
-
-## Repository layout
-
-```text
-.github/
-  workflows/             # GitHub Actions integration
-  ISSUE_TEMPLATE/
-docs/
-  architecture.md
-  configuration.md
-  security.md
-  review-policy.md
-skills/
-  team-pr-review/
-    SKILL.md
-src/
-  core/
-  providers/
-    gemini/
-  github/
-  review/
-  validators/
-tests/
-examples/
-```
-
-## Configuration (planned)
-
-Configuration is supplied through environment variables and a repository config file. See [docs/configuration.md](docs/configuration.md).
-
-Never commit API keys. Use GitHub Actions secrets for `GEMINI_API_KEY`.
+| Input | Required | Default | Description |
+|---|---:|---|---|
+| `gemini-api-key` | Yes | — | Gemini API key supplied by the consuming repository |
+| `github-token` | Yes | — | Token used for GitHub API access |
+| `gemini-model` | No | `gemini-2.5-flash` | Gemini model identifier |
+| `target-branches` | No | `develop` | Comma-separated target branches |
 
 ## Security principles
 
@@ -97,12 +101,13 @@ See [docs/security.md](docs/security.md).
 
 ## Development
 
-The implementation scaffold is being established. The initial planned runtime is Node.js + TypeScript, with the official Google Gen AI SDK and GitHub Actions.
+Requires Node.js 24 or newer.
 
 ```bash
 npm install
 npm run typecheck
 npm test
+npm run build
 ```
 
 ## License
