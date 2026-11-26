@@ -74,7 +74,7 @@ export async function reviewPullRequest(
   try {
     decoded = parseReviewJson(text);
   } catch {
-    const preview = text.trim().replace(/\\s+/g, " ").slice(0, 180);
+    const preview = text.trim().replace(/\s+/g, " ").slice(0, 180);
     throw new Error(
       `${options.provider} returned invalid JSON for the review result (response length: ${text.length} characters). Preview: ${preview}`,
     );
@@ -92,7 +92,7 @@ function parseReviewJson(text: string): unknown {
     // Continue: some models wrap JSON in Markdown fences or short prose.
   }
 
-  const fenced = /```(?:json)?\\s*([\\s\\S]*?)\\s*```/i.exec(trimmed);
+  const fenced = /```(?:json)?\s*([\s\S]*?)\s*```/i.exec(trimmed);
   if (fenced?.[1]) {
     try {
       return JSON.parse(fenced[1]) as unknown;
