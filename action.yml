@@ -1,0 +1,72 @@
+name: MergePilot
+description: AI-powered pull request review and conversation action
+author: adimunawar
+
+inputs:
+  ai-provider:
+    description: AI provider to use (gemini or nvidia)
+    required: false
+    default: gemini
+  ai-api-key:
+    description: API key for the selected provider (prefer GitHub Actions secrets)
+    required: false
+  ai-model:
+    description: Model identifier supported by the selected provider
+    required: false
+  ai-base-url:
+    description: Optional OpenAI-compatible API base URL (NVIDIA defaults to NVIDIA NIM)
+    required: false
+  gemini-api-key:
+    description: Legacy Gemini API key input; use ai-api-key for new workflows
+    required: false
+  gemini-model:
+    description: Legacy Gemini model input; use ai-model for new workflows
+    required: false
+  nvidia-api-key:
+    description: Legacy NVIDIA API key input
+    required: false
+  nvidia-model:
+    description: Legacy NVIDIA model input
+    required: false
+  github-token:
+    description: GitHub token used by MergePilot to read pull requests and reply to review threads
+    required: true
+  target-branches:
+    description: Comma-separated target branches to review
+    required: false
+    default: develop
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 24
+    - name: Install MergePilot dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm install
+    - name: Build MergePilot
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm run build
+    - name: Run MergePilot
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        INPUT_AI-PROVIDER: ${{ inputs.ai-provider }}
+        INPUT_AI-API-KEY: ${{ inputs.ai-api-key }}
+        INPUT_AI-MODEL: ${{ inputs.ai-model }}
+        INPUT_AI-BASE-URL: ${{ inputs.ai-base-url }}
+        INPUT_GEMINI-API-KEY: ${{ inputs.gemini-api-key }}
+        INPUT_GEMINI-MODEL: ${{ inputs.gemini-model }}
+        INPUT_NVIDIA-API-KEY: ${{ inputs.nvidia-api-key }}
+        INPUT_NVIDIA-MODEL: ${{ inputs.nvidia-model }}
+        INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
+        INPUT_TARGET-BRANCHES: ${{ inputs.target-branches }}
+      run: node dist/index.js
+
+branding:
+  icon: git-pull-request
+  color: blue

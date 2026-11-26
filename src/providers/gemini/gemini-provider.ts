@@ -1,26 +1,25 @@
 import { GoogleGenAI } from "@google/genai";
-import type { ReviewResult } from "../../core/types.js";
+import type { AIProvider, ReviewGenerationInput } from "../types.js";
 
-export interface ReviewInput {
-  model: string;
-  systemInstruction: string;
-  prompt: string;
-}
+export class GeminiProvider implements AIProvider {
+  private readonly client: GoogleGenAI;
 
-/**
- * Initial provider boundary. Output parsing and schema validation will be
- * implemented in the review pipeline before this provider is used in CI.
- */
-export class GeminiProvider {
-  constructor(private readonly client: GoogleGenAI) {}
+  constructor(apiKey: string) {
+    this.client = new GoogleGenAI({ apiKey });
+  }
 
-  async generateReview(input: ReviewInput): Promise<string> {
+  async generateReview(input: ReviewGenerationInput): Promise<string> {
     const response = await this.client.models.generateContent({
       model: input.model,
       contents: input.prompt,
-      config: { systemInstruction: input.systemInstruction },
+      config: {
+        systemInstruction: input.systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: input.responseSchema,
+        maxOutputTokens: 8_192,
+        temperature: 0.1,
+      },
     });
-
     return response.text ?? "";
   }
 }

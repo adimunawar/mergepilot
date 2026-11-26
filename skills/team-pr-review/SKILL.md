@@ -8,6 +8,9 @@ description: Evidence-based pull request review workflow for MergePilot.
 ## Objective
 Find meaningful defects and regression risks introduced by a pull request. Do not maximize comment count.
 
+## Review rubric
+Apply the shared `review-rubric` skill when evaluating candidates. Classify candidates internally as Act on, Consider, Noted, or Dismissed. Only evidence-backed, actionable candidates belong in the findings array; keep the existing output schema unchanged.
+
 ## Workflow
 1. Understand the PR goal, base branch, changed files, and relevant project conventions.
 2. Inspect the complete diff and read only the additional files needed to understand changed behavior.
