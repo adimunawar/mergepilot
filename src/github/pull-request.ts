@@ -1,4 +1,6 @@
-import type { Octokit } from "@octokit/core";
+import * as github from "@actions/github";
+
+type Octokit = ReturnType<typeof github.getOctokit>;
 
 export interface PullRequestFile {
   filename: string;
