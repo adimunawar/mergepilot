@@ -4,7 +4,11 @@
       "path": "team-pr-review/SKILL.md",
       "description": "Evidence-based pull request review workflow."
     },
-    "review-rubric": {\n      "path": "shared/review-rubric/SKILL.md",\n      "description": "Evidence standards, actionability decisions, and severity calibration."\n    },\n    "code-quality": {
+    "review-rubric": {
+      "path": "shared/review-rubric/SKILL.md",
+      "description": "Evidence standards, actionability decisions, and severity calibration."
+    },
+    "code-quality": {
       "path": "shared/code-quality/SKILL.md",
       "description": "Language-agnostic correctness, maintainability, and regression checks."
     },
