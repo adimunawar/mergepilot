@@ -1,6 +1,7 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { collectPullRequest } from "./github/pull-request.js";
+import { loadRelevantSkills } from "./skills/skill-loader.js";
 
 async function run(): Promise<void> {
   const geminiApiKey = core.getInput("gemini-api-key", { required: true });
@@ -38,6 +39,8 @@ async function run(): Promise<void> {
     pullRequest.number,
   );
 
+  const skillResult = await loadRelevantSkills(snapshot.files.map((file) => file.filename));
+
   core.info("MergePilot PR diff collection completed.");
   core.info(`Repository: ${context.repo.owner}/${context.repo.repo}`);
   core.info(`Pull request: #${snapshot.number} — ${snapshot.title}`);
@@ -45,6 +48,8 @@ async function run(): Promise<void> {
   core.info(`Head commit: ${snapshot.headSha}`);
   core.info(`Changed files collected: ${snapshot.files.length}/${snapshot.totalChangedFiles}`);
   core.info(`Patch characters collected: ${snapshot.totalPatchCharacters}`);
+  core.info(`Detected languages: ${skillResult.detectedLanguages.join(", ") || "none"}`);
+  core.info(`Loaded review skills: ${skillResult.skills.map((skill) => skill.id).join(", ")}`);
   if (snapshot.filesTruncated) {
     core.warning("Changed file list was truncated by the configured safety limit.");
   }
