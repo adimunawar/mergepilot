@@ -4,7 +4,7 @@ import { REVIEW_SYSTEM_INSTRUCTION } from "../src/review/gemini-reviewer.js";
 describe("review system instructions", () => {
   it("requires full-file verification before reporting absence claims", () => {
     expect(REVIEW_SYSTEM_INSTRUCTION).toContain(
-      "re-read the complete changed-file diff and its supplied source snapshot",
+      "latest PR-head source snapshot",
     );
     expect(REVIEW_SYSTEM_INSTRUCTION).toContain(
       "Claims that something is missing",
