@@ -72,6 +72,7 @@ const modelResponse = {
       severity: "medium",
       title: "Unchanged line finding",
       description: "This line is not part of the patch.",
+      evidence: "const valid = input.length > 0;",
       suggestion: "",
       confidence: 0.9,
     },
@@ -81,9 +82,13 @@ const modelResponse = {
 describe("end-to-end review pipeline", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    generateContent.mockResolvedValue({ text: JSON.stringify(modelResponse) });
+  });
+
+  it("builds bounded context, validates Gemini output, and publishes only an anchored finding", async () => {
     generateContent
       .mockResolvedValueOnce({ text: JSON.stringify(modelResponse) })
-      .mockResolvedValue({ text: JSON.stringify({
+      .mockResolvedValueOnce({ text: JSON.stringify({
         summary: "Independent verification complete.",
         findings: [{
           candidateIndex: 0,
@@ -92,9 +97,6 @@ describe("end-to-end review pipeline", () => {
           reason: "The candidate is supported by the current source.",
         }],
       }) });
-  });
-
-  it("builds bounded context, validates Gemini output, and publishes only an anchored finding", async () => {
     const context = buildReviewContext({
       pullRequest,
       skills,
