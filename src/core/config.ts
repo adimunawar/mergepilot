@@ -4,7 +4,7 @@ export interface MergePilotConfig {
   provider: AIProviderName;
   apiKey: string;
   model: string;
-  baseUrl?: string;
+  baseUrl?: string | undefined;
   targetBranches: string[];
 }
 
