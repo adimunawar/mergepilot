@@ -19,7 +19,7 @@ It starts with Google Gemini and a PStack-inspired review workflow, while keepin
 
 ## Current status
 
-The Action collects pull request metadata and bounded changed-file patches, then loads shared review skills and language-specific guidance based on file extensions. It does **not** call Gemini or publish review comments yet.
+The Action collects pull request metadata and bounded changed-file patches, selects shared and language-specific skills, and assembles a bounded review context. It does **not** call Gemini or publish review comments yet.
 
 ## Usage (runtime smoke test)
 
@@ -83,6 +83,10 @@ MergePilot CLI / Review Orchestrator
 MergePilot uses a language-agnostic review baseline plus language-specific skill packs. The registry in `skills/registry.json` maps file extensions to skills, while `skills/manifest.json` maps skill IDs to Markdown instructions. Only the default skills and packs matching changed files are loaded. Unknown extensions are reported but do not prevent review. Add a language by creating its skill Markdown file, registering it in the manifest, and mapping its extensions in the registry.
 
 Initial language packs include Dart/Flutter, JavaScript/TypeScript, Python, Go, Java/Kotlin, Rust, Ruby, PHP, Swift, and C#. The shared review policy applies to all languages; language packs add ecosystem-specific checks rather than replacing it.
+
+## Review context
+
+The context builder combines PR metadata, the PR description, selected skill instructions, optional repository guidance, and changed-file patches. It enforces character budgets, reports omitted/truncated content, and wraps repository-controlled text and diffs as untrusted input. The current stage does not yet fetch surrounding source files or resolve imports; that will be added carefully as a separate context-enrichment step.
 
 ## Configuration
 
