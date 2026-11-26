@@ -137,6 +137,27 @@ describe("end-to-end review pipeline", () => {
     }));
   });
 
+  it("extracts the final review JSON when the model prepends reasoning or commentary", async () => {
+    generateContent.mockResolvedValueOnce({
+      text: [
+        "Now we need to inspect the diff carefully. Example object: {not valid JSON}.",
+        "The review result is:",
+        JSON.stringify({ summary: "No actionable issues found.", findings: [] }),
+      ].join("\n"),
+    });
+
+    const review = await reviewPullRequest(
+      buildReviewContext({ pullRequest, skills }),
+      pullRequest,
+      { provider: "gemini", apiKey: "test-api-key", model: "gemini-test-model" },
+    );
+
+    expect(review).toEqual({
+      summary: "No actionable issues found.",
+      findings: [],
+    });
+  });
+
   it("fails closed when Gemini returns malformed JSON and does not publish a review", async () => {
     generateContent.mockResolvedValueOnce({ text: "{not-json" });
 
