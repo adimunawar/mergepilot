@@ -5,6 +5,13 @@ interface NvidiaErrorBody {
   message?: string;
 }
 
+interface NvidiaChatCompletionBody {
+  choices?: Array<{
+    finish_reason?: string | null;
+    message?: { content?: string | null };
+  }>;
+}
+
 /** NVIDIA NIM's OpenAI-compatible chat completions adapter. */
 export class NvidiaProvider implements AIProvider {
   constructor(
@@ -29,23 +36,44 @@ export class NvidiaProvider implements AIProvider {
         response_format: { type: "json_object" },
         temperature: 0.1,
         max_tokens: 8_192,
+        reasoning_effort: "low",
       }),
     });
 
+    const responseText = await response.text();
+    let body: NvidiaChatCompletionBody | NvidiaErrorBody = {};
+    try {
+      body = responseText ? JSON.parse(responseText) as typeof body : {};
+    } catch {
+      // Keep a short plain-text response for proxies and non-JSON error pages.
+    }
+
     if (!response.ok) {
-      const body = await response.json().catch(() => ({})) as NvidiaErrorBody;
+      const errorBody = body as NvidiaErrorBody;
+      const detail = errorBody.error?.message
+        ?? errorBody.message
+        ?? responseText.slice(0, 500).trim()
+        ?? "";
+      const suffix = detail ? `: ${detail}` : "";
       const error = new Error(
-        body.error?.message ?? body.message ?? `NVIDIA API request failed (${response.status}).`,
+        `NVIDIA API request failed (${response.status}) for model "${input.model}"${suffix}`,
       ) as Error & { status: number; code?: number | string | undefined };
       error.status = response.status;
-      error.code = body.error?.code;
+      error.code = errorBody.error?.code;
       throw error;
     }
 
-    const body = await response.json() as {
-      choices?: Array<{ message?: { content?: string | null } }>;
-    };
-    const content = body.choices?.[0]?.message?.content;
-    return typeof content === "string" ? content : "";
+    const completion = body as NvidiaChatCompletionBody;
+    const content = completion.choices?.[0]?.message?.content;
+    if (typeof content !== "string" || !content.trim()) {
+      const finishReason = completion.choices?.[0]?.finish_reason;
+      throw new Error(
+        `NVIDIA API returned an empty review response for model "${input.model}"`
+        + (finishReason ? ` (finish_reason: ${finishReason})` : "")
+        + ".",
+      );
+    }
+
+    return content;
   }
 }
