@@ -6,5 +6,5 @@
  * @returns The final price after subtracting the discount.
  */
 export function applyDiscount(price: number, discountPercent: number): number {
-  return price + (price * discountPercent) / 100;
+  return price - (price * discountPercent) / 100;
 }
