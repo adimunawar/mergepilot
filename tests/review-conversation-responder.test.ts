@@ -14,6 +14,7 @@ describe("respondToReviewConversation", () => {
       pullRequestTitle: "Add account lookup",
       pullRequestBody: "Adds account lookup.",
       changedFiles: ["src/account.ts"],
+      diffs: [{ filename: "src/account.ts", patch: "@@ -1 +1 @@\n-const id = input;\n+return lookup(id);" }],
       comments: [
         { id: 1, author: "github-actions[bot]", body: "The value may be null." },
         { id: 2, author: "developer", body: "The caller validates it before this function." },
@@ -37,6 +38,7 @@ describe("respondToReviewConversation", () => {
       pullRequestTitle: "Title",
       pullRequestBody: "",
       changedFiles: [],
+      diffs: [],
       comments: [],
     })).rejects.toThrow("invalid JSON");
   });
