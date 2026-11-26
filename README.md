@@ -110,8 +110,6 @@ npm test
 npm run build
 ```
 
-The build compiles TypeScript and bundles runtime dependencies into `action-dist/index.js`, which is committed with the Action release.
-
 ## License
 
 MIT. See [LICENSE](LICENSE).
