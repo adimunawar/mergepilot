@@ -143,7 +143,7 @@ describe("end-to-end review pipeline", () => {
     await expect(reviewPullRequest(
       buildReviewContext({ pullRequest, skills }),
       pullRequest,
-      { apiKey: "test-api-key", model: "gemini-test-model" },
+      { provider: "gemini", apiKey: "test-api-key", model: "gemini-test-model" },
     )).rejects.toThrow("invalid JSON");
   });
 });
