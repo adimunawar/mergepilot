@@ -53,7 +53,7 @@ describe("buildReviewContext", () => {
   it("combines metadata, skills, and changed patches as untrusted data", () => {
     const result = buildReviewContext({ pullRequest, skills });
 
-    expect(result.prompt).toContain("Pull request:"); // metadata heading
+    expect(result.prompt).toContain("## Pull request metadata");
     expect(result.prompt).toContain("Review skill: typescript-review");
     expect(result.prompt).toContain('<untrusted-input label="diff:src/checkout.ts">');
     expect(result.includedFiles).toEqual(["src/checkout.ts", "README.md"]);
