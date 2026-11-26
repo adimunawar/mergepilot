@@ -17,22 +17,17 @@ interface NvidiaChatCompletionBody {
     prompt_tokens?: number;
     completion_tokens?: number;
     total_tokens?: number;
-    completion_tokens_details?: { reasoning_tokens?: number };
   };
 }
 
-function getEmptyResponseDiagnostics(
-  completion: NvidiaChatCompletionBody,
-): string {
+function getEmptyResponseDiagnostics(completion: NvidiaChatCompletionBody): string {
   const message = completion.choices?.[0]?.message;
-  const details = [
+  return [
     `prompt_tokens=${completion.usage?.prompt_tokens ?? "unknown"}`,
     `completion_tokens=${completion.usage?.completion_tokens ?? "unknown"}`,
-    `reasoning_tokens=${completion.usage?.completion_tokens_details?.reasoning_tokens ?? "unknown"}`,
     `reasoning_chars=${message?.reasoning?.length ?? 0}`,
     `content_chars=${message?.content?.length ?? 0}`,
-  ];
-  return details.join(", ");
+  ].join(", ");
 }
 
 /** NVIDIA NIM's OpenAI-compatible chat completions adapter. */
@@ -49,19 +44,23 @@ export class NvidiaProvider implements AIProvider {
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
         "Content-Type": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify({
         model: input.model,
         messages: [
-          { role: "system", content: input.systemInstruction },
+          {
+            role: "system",
+            content: `${input.systemInstruction}\n\nReturn only valid JSON matching this schema:\n${JSON.stringify(input.responseSchema)}`,
+          },
           { role: "user", content: input.prompt },
         ],
-        response_format: { type: "json_object" },
+        // Nemotron 3 Nano Omni API supports reasoning_budget as a top-level
+        // parameter. Keep reasoning bounded so completion tokens remain for JSON.
+        reasoning_budget: 4_096,
+        max_tokens: 16_384,
         temperature: 0.1,
-        // Explicitly turn off thinking and cap the reasoning budget as a safeguard.
-        chat_template_kwargs: { enable_thinking: false },
-        reasoning_budget: 0,
-        max_tokens: 32_768,
+        top_p: 0.95,
         stream: false,
       }),
     });
