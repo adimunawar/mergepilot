@@ -102,6 +102,7 @@ describe("end-to-end review pipeline", () => {
         },
       },
       paginate,
+      graphql: vi.fn().mockResolvedValue({ repository: { pullRequest: { reviewThreads: { nodes: [] } } } }),
     } as never;
 
     await publishReview(octokit, pullRequest, review, {
