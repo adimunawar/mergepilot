@@ -8,6 +8,7 @@ export interface ReviewFinding {
   severity: ReviewSeverity;
   title: string;
   description: string;
+  evidence: string;
   suggestion: string;
   confidence: number;
 }
