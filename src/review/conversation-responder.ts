@@ -12,6 +12,7 @@ export interface ReviewConversationInput {
   pullRequestTitle: string;
   pullRequestBody: string;
   changedFiles: string[];
+  diffs: Array<{ filename: string; patch: string }>;
   comments: ReviewConversationComment[];
 }
 
@@ -68,6 +69,12 @@ export async function respondToReviewConversation(
     "",
     "## Changed files",
     untrusted("changed-file-paths", input.changedFiles.slice(0, 100).join("\n")),
+    "",
+    "## Pull request diffs",
+    ...input.diffs.slice(0, 100).map((diff) => [
+      `### ${diff.filename}`,
+      untrusted("pull-request-diff", diff.patch.slice(0, 12000)),
+    ].join("\n")),
     "",
     "## Review thread (oldest first)",
     comments,
