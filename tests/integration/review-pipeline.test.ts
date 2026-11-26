@@ -133,7 +133,7 @@ describe("end-to-end review pipeline", () => {
           body: expect.stringContaining("Null input is not handled"),
         }),
       ],
-      body: expect.stringContaining("MergePilot Review"),
+      body: expect.stringContaining("MergePilot — Code Review"),
     }));
   });
 
