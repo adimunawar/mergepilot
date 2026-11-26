@@ -4,6 +4,7 @@ import { collectPullRequest } from "./github/pull-request.js";
 import { loadRelevantSkills } from "./skills/skill-loader.js";
 import { buildReviewContext } from "./context/context-builder.js";
 import { collectSourceFiles } from "./context/source-files.js";
+import { reviewPullRequest } from "./review/gemini-reviewer.js";
 
 async function run(): Promise<void> {
   const geminiApiKey = core.getInput("gemini-api-key", { required: true });
@@ -54,7 +55,7 @@ async function run(): Promise<void> {
     sourceFiles,
   });
 
-  core.info("MergePilot PR diff and source context collection completed.");
+  core.info("MergePilot review context collection completed.");
   core.info(`Repository: ${context.repo.owner}/${context.repo.repo}`);
   core.info(`Pull request: #${snapshot.number} — ${snapshot.title}`);
   core.info(`Target branch: ${snapshot.baseRef}`);
@@ -66,6 +67,7 @@ async function run(): Promise<void> {
   core.info(`Source snapshots included: ${reviewContext.includedSourceFiles.length}; omitted: ${reviewContext.omittedSourceFiles.length}`);
   core.info(`Review context characters: ${reviewContext.characterCount}`);
   core.info(`Diff files included: ${reviewContext.includedFiles.length}; omitted: ${reviewContext.omittedFiles.length}`);
+
   if (reviewContext.truncated) {
     core.warning("Review context reached one or more safety limits; some content was truncated or omitted.");
   }
@@ -73,19 +75,25 @@ async function run(): Promise<void> {
     core.warning("Changed file list was truncated by the configured safety limit.");
   }
 
-  for (const file of snapshot.files) {
-    const patchLength = file.patch?.length ?? 0;
+  const review = await reviewPullRequest(reviewContext, snapshot, {
+    apiKey: geminiApiKey,
+    model: geminiModel,
+  });
+
+  core.info(`Gemini review completed with ${review.findings.length} validated finding(s).`);
+  core.info(`Review summary: ${review.summary || "No summary provided."}`);
+  for (const finding of review.findings) {
     core.info(
-      `- ${file.filename} (${file.status}, +${file.additions}/-${file.deletions}, patch: ${patchLength} chars)`,
+      `[${finding.severity.toUpperCase()}] ${finding.filePath}:${finding.line} — ${finding.title} (confidence: ${finding.confidence})`,
     );
-    if (file.patchTruncated) {
-      core.warning(`Patch was truncated for ${file.filename}.`);
-    }
+    core.info(finding.description);
+    if (finding.suggestion) core.info(`Suggestion: ${finding.suggestion}`);
   }
 
-  core.info(`Gemini model configured for the next review stage: ${geminiModel}`);
+  core.setOutput("finding-count", review.findings.length);
+  core.setOutput("review-summary", review.summary);
   core.warning(
-    "Gemini analysis and GitHub review publishing are not implemented yet. This run collects PR diffs, source snapshots, selects skills, and builds bounded review context.",
+    "GitHub review publishing is not implemented yet. Findings were generated and validated but were not posted to the pull request.",
   );
 }
 
