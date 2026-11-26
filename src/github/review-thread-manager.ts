@@ -76,7 +76,8 @@ export async function resolveOutdatedMergePilotThreads(
     if (!mergePilotFinding) continue;
 
     const match = /<!-- mergepilot-finding:([a-f0-9]{16}) -->/.exec(mergePilotFinding.body);
-    if (!match || currentKeys.has(match[1])) continue;
+    const findingKey = match?.[1];
+    if (!findingKey || currentKeys.has(findingKey)) continue;
 
     await octokit.graphql(
       `mutation($threadId: ID!) {
