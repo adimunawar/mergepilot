@@ -61,6 +61,7 @@ const modelResponse = {
       severity: "high",
       title: "Null input is not handled",
       description: "Accessing length throws when input is null.",
+      evidence: "const valid = input.length > 0;",
       suggestion: "Guard against null before reading length.",
       confidence: 0.96,
     },
@@ -86,7 +87,15 @@ describe("end-to-end review pipeline", () => {
   });
 
   it("builds bounded context, validates Gemini output, and publishes only an anchored finding", async () => {
-    const context = buildReviewContext({ pullRequest, skills });
+    const context = buildReviewContext({
+      pullRequest,
+      skills,
+      sourceFiles: {
+        files: [{ filename: "src/checkout.ts", content: "const valid = input.length > 0;", truncated: false }],
+        omittedFiles: [],
+        truncated: false,
+      },
+    });
     const review = await reviewPullRequest(context, pullRequest, {
       apiKey: "test-api-key",
       model: "gemini-test-model",
@@ -114,7 +123,7 @@ describe("end-to-end review pipeline", () => {
       commitSha: pullRequest.headSha,
     });
 
-    expect(generateContent).toHaveBeenCalledOnce();
+    expect(generateContent).toHaveBeenCalledTimes(2);
     const request = generateContent.mock.calls[0]?.[0];
     expect(request.contents).toContain(context.prompt);
     expect(request.contents).toContain("untrusted-input");
