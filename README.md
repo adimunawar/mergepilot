@@ -48,7 +48,7 @@ jobs:
         with:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          gemini-model: gemini-2.5-flash
+          gemini-model: gemini-3.8-flash
           target-branches: develop
 ```
 
@@ -98,7 +98,7 @@ Gemini returns structured JSON. MergePilot validates the schema, file paths, lin
 |---|---:|---|---|
 | `gemini-api-key` | Yes | — | Gemini API key supplied by the consuming repository |
 | `github-token` | Yes | — | Token used for GitHub API access; needs pull request write permission to publish reviews |
-| `gemini-model` | No | `gemini-2.5-flash` | Gemini model identifier |
+| `gemini-model` | No | `gemini-3.8-flash` | Gemini model identifier |
 | `target-branches` | No | `develop` | Comma-separated target branches |
 
 ## Security principles
