@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateReviewResult, validateReviewResultWithDiagnostics } from "../src/review/validator.js";
+import { validateReviewResult, validateReviewResultWithDiagnostics, validateReviewVerification } from "../src/review/validator.js";
 import type { PullRequestSnapshot } from "../src/github/pull-request.js";
 
 const pullRequest: PullRequestSnapshot = {
@@ -31,6 +31,7 @@ const finding = (line: number, title = "Possible defect") => ({
   severity: "high",
   title,
   description: "A concrete issue.",
+  evidence: "const added = false;",
   suggestion: "Handle this case.",
   confidence: 0.9,
 });
@@ -84,7 +85,7 @@ describe("validateReviewResult", () => {
       "export function applyDiscount(price: number, discountPercent: number): number {",
       "  return price - (price * discountPercent) / 100;",
       "}",
-    ].join("\\n");
+    ].join("\n");
     const staleFinding = {
       filePath: "src/app.ts",
       line: 11,
@@ -92,6 +93,7 @@ describe("validateReviewResult", () => {
       severity: "critical",
       title: "Arithmetic direction bug",
       description: "The function adds the discount instead of subtracting it.",
+      evidence: "return price - (price * discountPercent) / 100;",
       suggestion: "Change 'return price - (price * discountPercent) / 100;' to 'return price - (price * discountPercent) / 100;'",
       confidence: 1,
     };
@@ -119,6 +121,57 @@ describe("validateReviewResult", () => {
 
     expect(result.findings).toHaveLength(1);
     expect(diagnostics.rejectedSuggestionAlreadyPresent).toBe(0);
+  });
+
+
+  it("rejects a semantically false arithmetic finding even when its evidence quote exists", async () => {
+    const candidate = {
+      filePath: "src/app.ts",
+      line: 11,
+      endLine: 11,
+      severity: "critical" as const,
+      title: "Arithmetic direction bug",
+      description: "The function adds the discount instead of subtracting it.",
+      evidence: "return price - (price * discountPercent) / 100;",
+      suggestion: "Subtract the discount from the original price.",
+      confidence: 1,
+    };
+    const sourceSnapshots = [{
+      filename: "src/app.ts",
+      content: [
+        "export function applyDiscount(price: number, discountPercent: number): number {",
+        "  return price - (price * discountPercent) / 100;",
+        "}",
+      ].join("\n"),
+    }];
+    const { findings, rejected } = validateReviewVerification({
+      summary: "The claim contradicts the current implementation.",
+      findings: [{
+        candidateIndex: 0,
+        verdict: "reject",
+        evidence: "return price - (price * discountPercent) / 100;",
+        reason: "The current source subtracts the discount; it does not add it.",
+      }],
+    }, [candidate], sourceSnapshots);
+
+    expect(findings).toHaveLength(0);
+    expect(rejected).toBe(1);
+  });
+
+  it("fails closed when the verifier's evidence is not an exact source excerpt", () => {
+    const candidate = { ...finding(11), evidence: "const added = false;" };
+    const { findings, rejected } = validateReviewVerification({
+      summary: "Verification complete.",
+      findings: [{
+        candidateIndex: 0,
+        verdict: "confirm",
+        evidence: "const added = true;",
+        reason: "Claimed evidence does not match the file.",
+      }],
+    }, [candidate], [{ filename: "src/app.ts", content: "const added = false;" }]);
+
+    expect(findings).toHaveLength(0);
+    expect(rejected).toBe(1);
   });
 
   it("rejects malformed model output", () => {
