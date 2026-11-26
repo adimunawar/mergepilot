@@ -18,25 +18,25 @@ const resultSchema = z.object({
   findings: z.array(findingSchema).max(100),
 }).strict();
 
-function changedLineRanges(patch: string): Array<{ start: number; end: number }> {
-  const ranges: Array<{ start: number; end: number }> = [];
-  let current: { start: number; end: number } | undefined;
+function addedLineNumbers(patch: string): Set<number> {
+  const added = new Set<number>();
+  let newLine = 0;
   for (const line of patch.split("\n")) {
-    const match = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/.exec(line);
-    if (match) {
-      if (current) ranges.push(current);
-      const start = Number(match[1]);
-      const count = match[2] === undefined ? 1 : Number(match[2]);
-      current = count > 0 ? { start, end: start + count - 1 } : undefined;
+    const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(line);
+    if (hunk) {
+      newLine = Number(hunk[1]);
       continue;
     }
-    if (current && line.startsWith("+") && !line.startsWith("+++")) {
-      // The range header is the complete new-side hunk range; added lines
-      // are checked against that range below.
+    if (line.startsWith("+++")) continue;
+    if (line.startsWith("+")) {
+      added.add(newLine);
+      newLine += 1;
+    } else if (line.startsWith(" ")) {
+      newLine += 1;
     }
+    // Deleted lines do not advance the new-file line number.
   }
-  if (current) ranges.push(current);
-  return ranges;
+  return added;
 }
 
 export function validateReviewResult(
@@ -53,11 +53,10 @@ export function validateReviewResult(
     if (!file || file.patch === undefined || file.status === "removed") continue;
     if (finding.endLine < finding.line || finding.endLine - finding.line > 20) continue;
 
-    const ranges = changedLineRanges(file.patch);
-    const overlapsChangedHunk = ranges.some((range) =>
-      finding.line <= range.end && finding.endLine >= range.start,
-    );
-    if (!overlapsChangedHunk) continue;
+    const addedLines = addedLineNumbers(file.patch);
+    // Inline findings must start on an actual added line, not merely somewhere
+    // inside a hunk that also contains unchanged context.
+    if (!addedLines.has(finding.line)) continue;
 
     const key = `${finding.filePath}:${finding.line}:${finding.title.toLowerCase()}`;
     if (seen.has(key)) continue;
