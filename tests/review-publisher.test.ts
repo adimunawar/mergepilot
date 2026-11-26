@@ -45,11 +45,13 @@ function createOctokit(existingReviews: unknown[] = []) {
   const createReview = vi.fn().mockResolvedValue({});
   const listReviews = vi.fn();
   const paginate = vi.fn().mockResolvedValue(existingReviews);
+  const graphql = vi.fn().mockResolvedValue({ repository: { pullRequest: { reviewThreads: { nodes: [] } } } });
   const octokit = {
     rest: { pulls: { createReview, listReviews } },
     paginate,
+    graphql,
   } as never;
-  return { octokit, createReview, listReviews, paginate };
+  return { octokit, createReview, listReviews, paginate, graphql };
 }
 
 const options = {
