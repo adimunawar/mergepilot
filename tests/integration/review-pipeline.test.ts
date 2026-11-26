@@ -81,9 +81,17 @@ const modelResponse = {
 describe("end-to-end review pipeline", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    generateContent.mockResolvedValue({
-      text: "Here is the review result:\n\n```json\n" + JSON.stringify(modelResponse) + "\n```",
-    });
+    generateContent
+      .mockResolvedValueOnce({ text: JSON.stringify(modelResponse) })
+      .mockResolvedValue({ text: JSON.stringify({
+        summary: "Independent verification complete.",
+        findings: [{
+          candidateIndex: 0,
+          verdict: "confirm",
+          evidence: "const valid = input.length > 0;",
+          reason: "The candidate is supported by the current source.",
+        }],
+      }) });
   });
 
   it("builds bounded context, validates Gemini output, and publishes only an anchored finding", async () => {
