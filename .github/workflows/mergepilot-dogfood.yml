@@ -33,7 +33,7 @@ jobs:
                 echo "configured=true" >> "$GITHUB_OUTPUT"
               else
                 echo "configured=false" >> "$GITHUB_OUTPUT"
-                echo "::notice::Set GEMINI_API_KEY repository secret or select NVIDIA using MERGEPILOT_AI_PROVIDER."
+                echo "::notice::Set GEMINI_API_KEY secret or select NVIDIA with MERGEPILOT_AI_PROVIDER."
               fi
               ;;
             nvidia)
@@ -42,7 +42,7 @@ jobs:
                 echo "configured=true" >> "$GITHUB_OUTPUT"
               else
                 echo "configured=false" >> "$GITHUB_OUTPUT"
-                echo "::notice::Set NVIDIA_API_KEY and MERGEPILOT_NVIDIA_MODEL repository variable."
+                echo "::notice::Set NVIDIA_API_KEY secret and MERGEPILOT_NVIDIA_MODEL variable."
               fi
               ;;
             *)
@@ -68,6 +68,6 @@ jobs:
         with:
           ai-provider: ${{ needs.check-secret.outputs.provider }}
           ai-api-key: ${{ needs.check-secret.outputs.provider == 'nvidia' && secrets.NVIDIA_API_KEY || secrets.GEMINI_API_KEY }}
-          ai-model: ${{ needs.check-secret.outputs.provider == 'nvidia' && vars.MERGEPILOT_NVIDIA_MODEL || vars.MERGEPILOT_GEMINI_MODEL || 'gemini-3.8-flash' }}
+          ai-model: ${{ needs.check-secret.outputs.provider == 'nvidia' && (vars.MERGEPILOT_NVIDIA_MODEL || 'qwen/qwen2.5-coder-32b-instruct') || vars.MERGEPILOT_GEMINI_MODEL || 'gemini-3.8-flash' }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           target-branches: develop
