@@ -18,6 +18,17 @@ const resultSchema = z.object({
   findings: z.array(findingSchema).max(100),
 }).strict();
 
+export interface ReviewValidationDiagnostics {
+  candidateCount: number;
+  acceptedCount: number;
+  rejectedUnknownFile: number;
+  rejectedMissingPatch: number;
+  rejectedRemovedFile: number;
+  rejectedInvalidLineSpan: number;
+  rejectedNotAddedLine: number;
+  rejectedDuplicate: number;
+}
+
 function addedLineNumbers(patch: string): Set<number> {
   const added = new Set<number>();
   let newLine = 0;
@@ -34,35 +45,73 @@ function addedLineNumbers(patch: string): Set<number> {
     } else if (line.startsWith(" ")) {
       newLine += 1;
     }
-    // Deleted lines do not advance the new-file line number.
   }
   return added;
+}
+
+export function validateReviewResultWithDiagnostics(
+  value: unknown,
+  pullRequest: PullRequestSnapshot,
+): { result: ReviewResult; diagnostics: ReviewValidationDiagnostics } {
+  const parsed = resultSchema.parse(value);
+  const files = new Map(pullRequest.files.map((file) => [file.filename, file]));
+  const seen = new Set<string>();
+  const findings: ReviewFinding[] = [];
+  const diagnostics: ReviewValidationDiagnostics = {
+    candidateCount: parsed.findings.length,
+    acceptedCount: 0,
+    rejectedUnknownFile: 0,
+    rejectedMissingPatch: 0,
+    rejectedRemovedFile: 0,
+    rejectedInvalidLineSpan: 0,
+    rejectedNotAddedLine: 0,
+    rejectedDuplicate: 0,
+  };
+
+  for (const finding of parsed.findings) {
+    const file = files.get(finding.filePath);
+    if (!file) {
+      diagnostics.rejectedUnknownFile += 1;
+      continue;
+    }
+    if (file.patch === undefined) {
+      diagnostics.rejectedMissingPatch += 1;
+      continue;
+    }
+    if (file.status === "removed") {
+      diagnostics.rejectedRemovedFile += 1;
+      continue;
+    }
+    if (finding.endLine < finding.line || finding.endLine - finding.line > 20) {
+      diagnostics.rejectedInvalidLineSpan += 1;
+      continue;
+    }
+
+    const addedLines = addedLineNumbers(file.patch);
+    if (!addedLines.has(finding.line)) {
+      diagnostics.rejectedNotAddedLine += 1;
+      continue;
+    }
+
+    const key = `${finding.filePath}:${finding.line}:${finding.title.toLowerCase()}`;
+    if (seen.has(key)) {
+      diagnostics.rejectedDuplicate += 1;
+      continue;
+    }
+    seen.add(key);
+    findings.push(finding);
+  }
+
+  diagnostics.acceptedCount = findings.length;
+  return {
+    result: { summary: parsed.summary, findings },
+    diagnostics,
+  };
 }
 
 export function validateReviewResult(
   value: unknown,
   pullRequest: PullRequestSnapshot,
 ): ReviewResult {
-  const parsed = resultSchema.parse(value);
-  const files = new Map(pullRequest.files.map((file) => [file.filename, file]));
-  const seen = new Set<string>();
-  const findings: ReviewFinding[] = [];
-
-  for (const finding of parsed.findings) {
-    const file = files.get(finding.filePath);
-    if (!file || file.patch === undefined || file.status === "removed") continue;
-    if (finding.endLine < finding.line || finding.endLine - finding.line > 20) continue;
-
-    const addedLines = addedLineNumbers(file.patch);
-    // Inline findings must start on an actual added line, not merely somewhere
-    // inside a hunk that also contains unchanged context.
-    if (!addedLines.has(finding.line)) continue;
-
-    const key = `${finding.filePath}:${finding.line}:${finding.title.toLowerCase()}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    findings.push(finding);
-  }
-
-  return { summary: parsed.summary, findings };
+  return validateReviewResultWithDiagnostics(value, pullRequest).result;
 }
