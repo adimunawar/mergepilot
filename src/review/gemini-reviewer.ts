@@ -36,7 +36,7 @@ export interface ReviewerOptions {
   provider: "gemini" | "nvidia";
   apiKey: string;
   model: string;
-  baseUrl?: string;
+  baseUrl?: string | undefined;
 }
 
 function createProvider(options: ReviewerOptions): AIProvider {
