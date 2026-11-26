@@ -65,6 +65,7 @@ async function handleReviewCommentReply(
       pullRequestTitle: pullRequest.title,
       pullRequestBody: pullRequest.body,
       changedFiles: pullRequest.files.map((file) => file.filename),
+      diffs: pullRequest.files.flatMap((file) => file.patch ? [{ filename: file.filename, patch: file.patch }] : []),
       comments: conversation,
     },
   );
