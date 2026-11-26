@@ -115,6 +115,9 @@ describe("end-to-end review pipeline", () => {
     const request = generateContent.mock.calls[0]?.[0];
     expect(request.contents).toContain(context.prompt);
     expect(request.contents).toContain("untrusted-input");
+    expect(request.config.systemInstruction).toContain("Act on, Consider, Noted, or Dismissed");
+    expect(request.config.systemInstruction).toContain("triggering condition, concrete impact, and code evidence");
+    expect(request.config.systemInstruction).toContain("Do not report a missing test alone as a defect.");
 
     expect(review.findings).toHaveLength(1);
     expect(review.findings[0]?.line).toBe(1);

@@ -2,6 +2,7 @@
   "version": 1,
   "defaultSkills": [
     "team-pr-review",
+    "review-rubric",
     "code-quality",
     "security-review"
   ],
