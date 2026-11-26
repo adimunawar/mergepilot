@@ -34,6 +34,7 @@ export function buildReviewContext(
   const includedSourceFiles: string[] = [];
   const omittedSourceFiles = [...(sourceFiles?.omittedFiles ?? [])];
   const includedSkills: string[] = [];
+  const sourceSnapshots: Array<{ filename: string; content: string }> = [];
   let usedCharacters = 0;
   let truncated = sourceFiles?.truncated ?? false;
 
@@ -101,6 +102,7 @@ export function buildReviewContext(
       continue;
     }
     includedSourceFiles.push(sourceFile.filename);
+    sourceSnapshots.push({ filename: sourceFile.filename, content: sourceFile.content });
     truncated ||= sourceFile.truncated;
   }
 
@@ -144,6 +146,7 @@ export function buildReviewContext(
     includedSourceFiles,
     omittedSourceFiles,
     includedSkills,
+    sourceSnapshots,
     truncated,
   };
 }

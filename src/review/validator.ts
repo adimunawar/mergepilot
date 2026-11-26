@@ -27,6 +27,12 @@ export interface ReviewValidationDiagnostics {
   rejectedInvalidLineSpan: number;
   rejectedNotAddedLine: number;
   rejectedDuplicate: number;
+  rejectedSuggestionAlreadyPresent: number;
+}
+
+export interface ReviewSourceSnapshot {
+  filename: string;
+  content: string;
 }
 
 function addedLineNumbers(patch: string): Set<number> {
@@ -49,12 +55,39 @@ function addedLineNumbers(patch: string): Set<number> {
   return added;
 }
 
+function normalizeCode(value: string): string {
+  return value.replace(/\s+/g, "").replace(/;$/, "");
+}
+
+/**
+ * Rejects stale "change X to X" recommendations when the target expression
+ * is already present in the current PR-head source snapshot.
+ */
+function suggestionIsAlreadyApplied(
+  suggestion: string,
+  source: string | undefined,
+): boolean {
+  if (!source || !suggestion.trim()) return false;
+
+  const changePattern = /change\s+(['"`])([\s\S]*?)\1\s+to\s+(['"`])([\s\S]*?)\3/i;
+  const match = changePattern.exec(suggestion);
+  if (!match?.[2] || !match[4]) return false;
+
+  const previous = normalizeCode(match[2]);
+  const proposed = normalizeCode(match[4]);
+  if (!previous || previous !== proposed) return false;
+
+  return normalizeCode(source).includes(proposed);
+}
+
 export function validateReviewResultWithDiagnostics(
   value: unknown,
   pullRequest: PullRequestSnapshot,
+  sourceSnapshots: ReviewSourceSnapshot[] = [],
 ): { result: ReviewResult; diagnostics: ReviewValidationDiagnostics } {
   const parsed = resultSchema.parse(value);
   const files = new Map(pullRequest.files.map((file) => [file.filename, file]));
+  const sources = new Map(sourceSnapshots.map((file) => [file.filename, file.content]));
   const seen = new Set<string>();
   const findings: ReviewFinding[] = [];
   const diagnostics: ReviewValidationDiagnostics = {
@@ -66,6 +99,7 @@ export function validateReviewResultWithDiagnostics(
     rejectedInvalidLineSpan: 0,
     rejectedNotAddedLine: 0,
     rejectedDuplicate: 0,
+    rejectedSuggestionAlreadyPresent: 0,
   };
 
   for (const finding of parsed.findings) {
@@ -90,6 +124,11 @@ export function validateReviewResultWithDiagnostics(
     const addedLines = addedLineNumbers(file.patch);
     if (!addedLines.has(finding.line)) {
       diagnostics.rejectedNotAddedLine += 1;
+      continue;
+    }
+
+    if (suggestionIsAlreadyApplied(finding.suggestion, sources.get(finding.filePath))) {
+      diagnostics.rejectedSuggestionAlreadyPresent += 1;
       continue;
     }
 

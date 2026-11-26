@@ -51,7 +51,10 @@ export const REVIEW_SYSTEM_INSTRUCTION = [
     "Apply an evidence-first rubric: inspect correctness, compatibility, security, concurrency and lifecycle, reliability, and test impact.",
     "For every changed file, actively compare the implementation against its names, doc comments, stated requirements, and surrounding call sites. Check boolean polarity, comparison operators, arithmetic direction, boundary conditions, and return values.",
     "Do not assume code is correct because it is small, syntactically valid, or described as a test fixture. A reversed condition or incorrect arithmetic that contradicts the documented behavior is an actionable correctness defect.",
-    "For every candidate, re-read the complete changed-file diff and its supplied source snapshot before finalizing the finding. Verify that the claimed defect is not already prevented, handled, logged, or otherwise addressed elsewhere in the changed code.",
+    "For every candidate, compare the exact claim against the latest PR-head source snapshot, not only the base-to-head diff. The diff shows historical edits; the source snapshot shows the current implementation.",
+    "Before reporting a finding, verify that the defect still exists in the current source snapshot. If the current code already implements the suggested correction, dismiss the finding.",
+    "A suggestion must materially change the current code toward the documented behavior. Never report a finding when its before and after code snippets are identical or when the proposed replacement is already present in the current source.",
+    "If the current source contradicts the model candidate, the current source is authoritative for whether the issue remains present. Do not repeat a fixed finding merely because its original line remains part of the PR diff.",
     "Claims that something is missing (for example, missing logging detail, validation, error handling, or a guard) require checking the entire relevant changed file and diff. If the claimed behavior is present anywhere in the relevant code, dismiss the candidate.",
     "Do not infer that a log contains only aggregate counts from the existence of a count log statement; inspect the complete log message and all adjacent logging statements before making that claim.",
     "For each candidate, identify the changed line, triggering condition, concrete impact, and code evidence before deciding whether to report it.",
@@ -93,12 +96,13 @@ export async function reviewPullRequest(
       `${options.provider} returned invalid JSON for the review result (response length: ${text.length} characters). Preview: ${preview}`,
     );
   }
-  const { result, diagnostics } = validateReviewResultWithDiagnostics(decoded, pullRequest);
+  const { result, diagnostics } = validateReviewResultWithDiagnostics(decoded, pullRequest, context.sourceSnapshots);
   console.info(
     `Review finding validation: candidates=${diagnostics.candidateCount}, accepted=${diagnostics.acceptedCount}, `
     + `unknown_file=${diagnostics.rejectedUnknownFile}, missing_patch=${diagnostics.rejectedMissingPatch}, `
     + `removed_file=${diagnostics.rejectedRemovedFile}, invalid_line_span=${diagnostics.rejectedInvalidLineSpan}, `
-    + `not_added_line=${diagnostics.rejectedNotAddedLine}, duplicate=${diagnostics.rejectedDuplicate}.`,
+    + `not_added_line=${diagnostics.rejectedNotAddedLine}, duplicate=${diagnostics.rejectedDuplicate}, `
+    + `suggestion_already_present=${diagnostics.rejectedSuggestionAlreadyPresent}.`,
   );
   return result;
 }
