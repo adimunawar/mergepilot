@@ -8,8 +8,31 @@ interface NvidiaErrorBody {
 interface NvidiaChatCompletionBody {
   choices?: Array<{
     finish_reason?: string | null;
-    message?: { content?: string | null };
+    message?: {
+      content?: string | null;
+      reasoning?: string | null;
+    };
   }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+    completion_tokens_details?: { reasoning_tokens?: number };
+  };
+}
+
+function getEmptyResponseDiagnostics(
+  completion: NvidiaChatCompletionBody,
+): string {
+  const message = completion.choices?.[0]?.message;
+  const details = [
+    `prompt_tokens=${completion.usage?.prompt_tokens ?? "unknown"}`,
+    `completion_tokens=${completion.usage?.completion_tokens ?? "unknown"}`,
+    `reasoning_tokens=${completion.usage?.completion_tokens_details?.reasoning_tokens ?? "unknown"}`,
+    `reasoning_chars=${message?.reasoning?.length ?? 0}`,
+    `content_chars=${message?.content?.length ?? 0}`,
+  ];
+  return details.join(", ");
 }
 
 /** NVIDIA NIM's OpenAI-compatible chat completions adapter. */
@@ -35,10 +58,10 @@ export class NvidiaProvider implements AIProvider {
         ],
         response_format: { type: "json_object" },
         temperature: 0.1,
-        // Nemotron uses the same token budget for reasoning and visible output.
-        // Disable thinking for this structured code-review response.
+        // Explicitly turn off thinking and cap the reasoning budget as a safeguard.
         chat_template_kwargs: { enable_thinking: false },
-        max_tokens: 16_384,
+        reasoning_budget: 0,
+        max_tokens: 32_768,
         stream: false,
       }),
     });
@@ -73,7 +96,7 @@ export class NvidiaProvider implements AIProvider {
       throw new Error(
         `NVIDIA API returned an empty review response for model "${input.model}"`
         + (finishReason ? ` (finish_reason: ${finishReason})` : "")
-        + ".",
+        + ` [${getEmptyResponseDiagnostics(completion)}].`,
       );
     }
 
