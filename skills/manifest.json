@@ -1,0 +1,68 @@
+{
+  "skills": {
+    "team-pr-review": {
+      "path": "team-pr-review/SKILL.md",
+      "description": "Evidence-based pull request review workflow."
+    },
+    "code-quality": {
+      "path": "shared/code-quality/SKILL.md",
+      "description": "Language-agnostic correctness, maintainability, and regression checks."
+    },
+    "security-review": {
+      "path": "shared/security-review/SKILL.md",
+      "description": "Language-agnostic security review and untrusted-input handling."
+    },
+    "dart-review": {
+      "path": "languages/dart/SKILL.md",
+      "description": "Dart language correctness and runtime review."
+    },
+    "flutter-review": {
+      "path": "languages/flutter/SKILL.md",
+      "description": "Flutter widgets, state, lifecycle, navigation, and rendering review."
+    },
+    "javascript-review": {
+      "path": "languages/javascript/SKILL.md",
+      "description": "JavaScript runtime, async behavior, browser and Node.js review."
+    },
+    "typescript-review": {
+      "path": "languages/typescript/SKILL.md",
+      "description": "TypeScript type safety, narrowing, and runtime validation review."
+    },
+    "python-review": {
+      "path": "languages/python/SKILL.md",
+      "description": "Python runtime, typing, async, and resource handling review."
+    },
+    "go-review": {
+      "path": "languages/go/SKILL.md",
+      "description": "Go error handling, concurrency, and resource lifecycle review."
+    },
+    "java-review": {
+      "path": "languages/java/SKILL.md",
+      "description": "Java correctness, concurrency, and resource management review."
+    },
+    "kotlin-review": {
+      "path": "languages/kotlin/SKILL.md",
+      "description": "Kotlin nullability, coroutines, and Android lifecycle review."
+    },
+    "rust-review": {
+      "path": "languages/rust/SKILL.md",
+      "description": "Rust ownership, error handling, and concurrency review."
+    },
+    "ruby-review": {
+      "path": "languages/ruby/SKILL.md",
+      "description": "Ruby runtime, Rails conventions, and data handling review."
+    },
+    "php-review": {
+      "path": "languages/php/SKILL.md",
+      "description": "PHP runtime, web security, and framework-aware review."
+    },
+    "swift-review": {
+      "path": "languages/swift/SKILL.md",
+      "description": "Swift concurrency, optionals, and Apple platform lifecycle review."
+    },
+    "csharp-review": {
+      "path": "languages/csharp/SKILL.md",
+      "description": "C# async, nullability, and .NET resource handling review."
+    }
+  }
+}

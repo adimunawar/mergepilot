@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "defaultSkills": [
+    "team-pr-review",
+    "code-quality",
+    "security-review"
+  ],
+  "languages": {
+    "dart": {
+      "extensions": [".dart"],
+      "skills": ["dart-review", "flutter-review"]
+    },
+    "javascript": {
+      "extensions": [".js", ".jsx", ".mjs", ".cjs"],
+      "skills": ["javascript-review"]
+    },
+    "typescript": {
+      "extensions": [".ts", ".tsx", ".mts", ".cts"],
+      "skills": ["typescript-review", "javascript-review"]
+    },
+    "python": {
+      "extensions": [".py", ".pyi"],
+      "skills": ["python-review"]
+    },
+    "go": {
+      "extensions": [".go"],
+      "skills": ["go-review"]
+    },
+    "java": {
+      "extensions": [".java"],
+      "skills": ["java-review"]
+    },
+    "kotlin": {
+      "extensions": [".kt", ".kts"],
+      "skills": ["kotlin-review"]
+    },
+    "rust": {
+      "extensions": [".rs"],
+      "skills": ["rust-review"]
+    },
+    "ruby": {
+      "extensions": [".rb"],
+      "skills": ["ruby-review"]
+    },
+    "php": {
+      "extensions": [".php"],
+      "skills": ["php-review"]
+    },
+    "swift": {
+      "extensions": [".swift"],
+      "skills": ["swift-review"]
+    },
+    "csharp": {
+      "extensions": [".cs"],
+      "skills": ["csharp-review"]
+    }
+  }
+}
