@@ -6,7 +6,78 @@ import { publishReview } from "./github/review-publisher.js";
 import { loadRelevantSkills } from "./skills/skill-loader.js";
 import { buildReviewContext } from "./context/context-builder.js";
 import { collectSourceFiles } from "./context/source-files.js";
-import { reviewPullRequest } from "./review/gemini-reviewer.js";
+import { createAIProvider, reviewPullRequest } from "./review/gemini-reviewer.js";
+import { respondToReviewConversation } from "./review/conversation-responder.js";
+
+async function handleReviewCommentReply(
+  octokit: ReturnType<typeof github.getOctokit>,
+  owner: string,
+  repo: string,
+  pullNumber: number,
+  comment: {
+    id: number;
+    user?: { login?: string; type?: string } | null;
+    in_reply_to_id?: number;
+  },
+  config: ReturnType<typeof loadConfig>,
+): Promise<void> {
+  if (!comment.in_reply_to_id || comment.user?.type === "Bot") {
+    core.info("Skipping review comment: it is not a developer reply.");
+    return;
+  }
+
+  const threadComments = await octokit.paginate(octokit.rest.pulls.listReviewComments, {
+    owner,
+    repo,
+    pull_number: pullNumber,
+    per_page: 100,
+  });
+  const parent = threadComments.find((item) => item.id === comment.in_reply_to_id);
+  if (
+    !parent
+    || parent.user?.type !== "Bot"
+    || !parent.body?.includes("<!-- mergepilot-finding:")
+  ) {
+    core.info("Skipping review comment: parent is not a MergePilot finding.");
+    return;
+  }
+
+  const pullRequest = await collectPullRequest(octokit, owner, repo, pullNumber);
+  const conversation = threadComments
+    .filter((item) => item.id === parent.id || item.in_reply_to_id === parent.id)
+    .sort((a, b) => a.id - b.id)
+    .map((item) => ({
+      id: item.id,
+      author: item.user?.login ?? "unknown",
+      body: item.body,
+    }));
+
+  const response = await respondToReviewConversation(
+    createAIProvider({
+      provider: config.provider,
+      apiKey: config.apiKey,
+      model: config.model,
+      baseUrl: config.baseUrl,
+    }),
+    config.model,
+    {
+      pullRequestTitle: pullRequest.title,
+      pullRequestBody: pullRequest.body,
+      changedFiles: pullRequest.files.map((file) => file.filename),
+      diffs: pullRequest.files.flatMap((file) => file.patch ? [{ filename: file.filename, patch: file.patch }] : []),
+      comments: conversation,
+    },
+  );
+
+  await octokit.rest.pulls.createReplyForReviewComment({
+    owner,
+    repo,
+    pull_number: pullNumber,
+    comment_id: comment.id,
+    body: response.reply,
+  });
+  core.info(`Replied to MergePilot review thread #${parent.id} (disposition: ${response.disposition}).`);
+}
 
 async function run(): Promise<void> {
   const config = loadConfig({
@@ -25,9 +96,32 @@ async function run(): Promise<void> {
     .split(",").map((branch) => branch.trim()).filter(Boolean);
 
   const context = github.context;
+  const octokit = github.getOctokit(githubToken);
+
+  if (context.eventName === "pull_request_review_comment") {
+    const pullRequest = context.payload.pull_request;
+    const comment = context.payload.comment;
+    if (!pullRequest || !comment) {
+      throw new Error("Review comment event is missing pull request or comment data.");
+    }
+    if (!targetBranches.includes(pullRequest.base.ref)) {
+      core.notice(`Skipping PR #${pullRequest.number}: base branch "${pullRequest.base.ref}" is not configured for review.`);
+      return;
+    }
+    await handleReviewCommentReply(
+      octokit,
+      context.repo.owner,
+      context.repo.repo,
+      pullRequest.number,
+      comment,
+      config,
+    );
+    return;
+  }
+
   const pullRequest = context.payload.pull_request;
   if (context.eventName !== "pull_request" || !pullRequest) {
-    throw new Error("MergePilot must run from a pull_request event.");
+    throw new Error("MergePilot must run from a pull_request or pull_request_review_comment event.");
   }
   const baseBranch = pullRequest.base.ref;
   if (!targetBranches.includes(baseBranch)) {
@@ -35,7 +129,6 @@ async function run(): Promise<void> {
     return;
   }
 
-  const octokit = github.getOctokit(githubToken);
   const snapshot = await collectPullRequest(octokit, context.repo.owner, context.repo.repo, pullRequest.number);
   const skillResult = await loadRelevantSkills(snapshot.files.map((file) => file.filename));
   const sourceFiles = await collectSourceFiles(octokit, context.repo.owner, context.repo.repo, snapshot);

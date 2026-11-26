@@ -4,6 +4,8 @@ on:
   pull_request:
     branches: [develop]
     types: [opened, synchronize, reopened]
+  pull_request_review_comment:
+    types: [created]
 
 permissions:
   contents: read
