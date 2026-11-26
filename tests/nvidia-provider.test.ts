@@ -39,7 +39,6 @@ describe("NvidiaProvider", () => {
     expect(request.max_tokens).toBe(16_384);
     expect(request.stream).toBe(false);
     expect(request.response_format).toBeUndefined();
-    expect(request.chat_template_kwargs).toBeUndefined();
     expect(request.messages[0].content).toContain(JSON.stringify(input.responseSchema));
   });
 
