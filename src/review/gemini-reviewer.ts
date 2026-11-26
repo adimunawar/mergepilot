@@ -3,6 +3,7 @@ import type { PullRequestSnapshot } from "../github/pull-request.js";
 import type { ReviewContext } from "../context/types.js";
 import { validateReviewResult } from "./validator.js";
 import type { ReviewResult } from "./types.js";
+import { withTransientRetry } from "./transient-retry.js";
 
 const responseSchema = {
   type: "OBJECT",
@@ -40,7 +41,7 @@ export async function reviewPullRequest(
   options: GeminiReviewerOptions,
 ): Promise<ReviewResult> {
   const client = new GoogleGenAI({ apiKey: options.apiKey });
-  const response = await client.models.generateContent({
+  const response = await withTransientRetry(() => client.models.generateContent({
     model: options.model,
     contents: [
       "You are MergePilot, a conservative senior software engineer reviewing a GitHub pull request.",
@@ -59,7 +60,7 @@ export async function reviewPullRequest(
       maxOutputTokens: 8_192,
       temperature: 0.1,
     },
-  });
+  }));
 
   const text = response.text;
   if (!text?.trim()) throw new Error("Gemini returned an empty review response.");
