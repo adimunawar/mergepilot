@@ -72,9 +72,40 @@ export async function reviewPullRequest(
 
   let decoded: unknown;
   try {
-    decoded = JSON.parse(text);
+    decoded = parseReviewJson(text);
   } catch {
-    throw new Error(`${options.provider} returned invalid JSON for the review result.`);
+    const preview = text.trim().replace(/\\s+/g, " ").slice(0, 180);
+    throw new Error(
+      `${options.provider} returned invalid JSON for the review result (response length: ${text.length} characters). Preview: ${preview}`,
+    );
   }
   return validateReviewResult(decoded, pullRequest);
+}
+
+function parseReviewJson(text: string): unknown {
+  const trimmed = text.trim();
+  if (!trimmed) throw new Error("Empty model response.");
+
+  try {
+    return JSON.parse(trimmed) as unknown;
+  } catch {
+    // Continue: some models wrap JSON in Markdown fences or short prose.
+  }
+
+  const fenced = /```(?:json)?\\s*([\\s\\S]*?)\\s*```/i.exec(trimmed);
+  if (fenced?.[1]) {
+    try {
+      return JSON.parse(fenced[1]) as unknown;
+    } catch {
+      // Try extracting an outer JSON object below.
+    }
+  }
+
+  const objectStart = trimmed.indexOf("{");
+  const objectEnd = trimmed.lastIndexOf("}");
+  if (objectStart >= 0 && objectEnd > objectStart) {
+    return JSON.parse(trimmed.slice(objectStart, objectEnd + 1)) as unknown;
+  }
+
+  throw new Error("No complete JSON object found in model response.");
 }
