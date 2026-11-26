@@ -16,6 +16,7 @@ export interface ReviewContext {
   includedSourceFiles: string[];
   omittedSourceFiles: string[];
   includedSkills: string[];
+  sourceSnapshots: Array<{ filename: string; content: string }>;
   truncated: boolean;
 }
 
