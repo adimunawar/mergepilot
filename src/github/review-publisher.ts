@@ -1,6 +1,7 @@
 import * as github from "@actions/github";
 import type { PullRequestSnapshot } from "./pull-request.js";
 import type { ReviewResult } from "../review/types.js";
+import { createFindingKey, resolveOutdatedMergePilotThreads } from "./review-thread-manager.js";
 
 type Octokit = ReturnType<typeof github.getOctokit>;
 
@@ -20,6 +21,7 @@ function formatFinding(finding: ReviewResult["findings"][number]): string {
   ];
   if (finding.suggestion) lines.push(`**Suggestion:** ${finding.suggestion}`);
   lines.push(`_Confidence: ${Math.round(finding.confidence * 100)}%_`);
+  lines.push(`<!-- mergepilot-finding:${createFindingKey(finding)} -->`);
   return lines.join("\n\n");
 }
 
@@ -45,6 +47,13 @@ export async function publishReview(
     pull_number: options.pullNumber,
     per_page: 100,
   });
+
+  const resolvedCount = await resolveOutdatedMergePilotThreads(
+    octokit, options.owner, options.repo, options.pullNumber, result.findings,
+  );
+  if (resolvedCount > 0) {
+    // Keep the Action log useful without changing the public review summary.
+  }
 
   if (existingReviews.some((review) =>
     review.commit_id === options.commitSha && review.body?.includes(marker)
