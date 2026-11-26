@@ -33,7 +33,7 @@ const responseSchema = {
 };
 
 export interface ReviewerOptions {
-  provider: "gemini" | "nvidia";
+  provider?: "gemini" | "nvidia";
   apiKey: string;
   model: string;
   baseUrl?: string | undefined;
