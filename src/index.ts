@@ -2,6 +2,7 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { collectPullRequest } from "./github/pull-request.js";
 import { loadRelevantSkills } from "./skills/skill-loader.js";
+import { buildReviewContext } from "./context/context-builder.js";
 
 async function run(): Promise<void> {
   const geminiApiKey = core.getInput("gemini-api-key", { required: true });
@@ -40,6 +41,7 @@ async function run(): Promise<void> {
   );
 
   const skillResult = await loadRelevantSkills(snapshot.files.map((file) => file.filename));
+  const reviewContext = buildReviewContext({ pullRequest: snapshot, skills: skillResult });
 
   core.info("MergePilot PR diff collection completed.");
   core.info(`Repository: ${context.repo.owner}/${context.repo.repo}`);
@@ -49,7 +51,12 @@ async function run(): Promise<void> {
   core.info(`Changed files collected: ${snapshot.files.length}/${snapshot.totalChangedFiles}`);
   core.info(`Patch characters collected: ${snapshot.totalPatchCharacters}`);
   core.info(`Detected languages: ${skillResult.detectedLanguages.join(", ") || "none"}`);
-  core.info(`Loaded review skills: ${skillResult.skills.map((skill) => skill.id).join(", ")}`);
+  core.info(`Loaded review skills: ${reviewContext.includedSkills.join(", ")}`);
+  core.info(`Review context characters: ${reviewContext.characterCount}`);
+  core.info(`Context files included: ${reviewContext.includedFiles.length}; omitted: ${reviewContext.omittedFiles.length}`);
+  if (reviewContext.truncated) {
+    core.warning("Review context reached one or more safety limits; some content was truncated or omitted.");
+  }
   if (snapshot.filesTruncated) {
     core.warning("Changed file list was truncated by the configured safety limit.");
   }
@@ -66,7 +73,7 @@ async function run(): Promise<void> {
 
   core.info(`Gemini model configured for the next review stage: ${geminiModel}`);
   core.warning(
-    "Gemini analysis and GitHub review publishing are not implemented yet. This run only collects bounded PR metadata and diffs.",
+    "Gemini analysis and GitHub review publishing are not implemented yet. This run collects PR diffs, selects skills, and builds bounded review context.",
   );
 }
 
