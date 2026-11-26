@@ -45,12 +45,6 @@ export function createAIProvider(options: ReviewerOptions): AIProvider {
     : new GeminiProvider(options.apiKey);
 }
 
-export async function reviewPullRequest(
-  context: ReviewContext,
-  pullRequest: PullRequestSnapshot,
-  options: ReviewerOptions,
-): Promise<ReviewResult> {
-  const provider = createAIProvider(options);
 export const REVIEW_SYSTEM_INSTRUCTION = [
     "You are MergePilot, a conservative senior software engineer reviewing a GitHub pull request.",
     "Return only findings that identify concrete bugs, regressions, security issues, or correctness problems.",
@@ -71,6 +65,14 @@ export const REVIEW_SYSTEM_INSTRUCTION = [
     "If no actionable issue is supported by evidence, return an empty findings array.",
     "Return exactly one JSON object with keys summary and findings. Do not include analysis, reasoning, markdown fences, or prose.",
  ].join("\n");
+
+export async function reviewPullRequest(
+  context: ReviewContext,
+  pullRequest: PullRequestSnapshot,
+  options: ReviewerOptions,
+): Promise<ReviewResult> {
+  const provider = createAIProvider(options);
+
 
 
 
