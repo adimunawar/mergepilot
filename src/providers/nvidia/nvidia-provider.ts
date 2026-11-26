@@ -35,8 +35,11 @@ export class NvidiaProvider implements AIProvider {
         ],
         response_format: { type: "json_object" },
         temperature: 0.1,
-        max_tokens: 8_192,
-        reasoning_effort: "low",
+        // Nemotron uses the same token budget for reasoning and visible output.
+        // Disable thinking for this structured code-review response.
+        chat_template_kwargs: { enable_thinking: false },
+        max_tokens: 16_384,
+        stream: false,
       }),
     });
 
