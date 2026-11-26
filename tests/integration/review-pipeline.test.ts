@@ -93,15 +93,18 @@ describe("end-to-end review pipeline", () => {
     });
 
     const createReview = vi.fn().mockResolvedValue({});
+    const createComment = vi.fn().mockResolvedValue({});
+    const updateComment = vi.fn().mockResolvedValue({});
+    const listReviews = vi.fn();
+    const listComments = vi.fn();
     const paginate = vi.fn().mockResolvedValue([]);
     const octokit = {
       rest: {
-        pulls: {
-          createReview,
-          listReviews: vi.fn(),
-        },
+        pulls: { createReview, listReviews },
+        issues: { listComments, createComment, updateComment },
       },
       paginate,
+      graphql: vi.fn().mockResolvedValue({ repository: { pullRequest: { reviewThreads: { nodes: [] } } } }),
     } as never;
 
     await publishReview(octokit, pullRequest, review, {
@@ -121,7 +124,10 @@ describe("end-to-end review pipeline", () => {
 
     expect(review.findings).toHaveLength(1);
     expect(review.findings[0]?.line).toBe(1);
-    expect(paginate).toHaveBeenCalledOnce();
+    expect(paginate).toHaveBeenCalledTimes(2);
+    expect(createComment).toHaveBeenCalledWith(expect.objectContaining({
+      body: expect.stringContaining("MergePilot — Code Review"),
+    }));
     expect(createReview).toHaveBeenCalledWith(expect.objectContaining({
       owner: "acme",
       repo: "checkout",
@@ -136,7 +142,7 @@ describe("end-to-end review pipeline", () => {
           body: expect.stringContaining("Null input is not handled"),
         }),
       ],
-      body: expect.stringContaining("MergePilot — Code Review"),
+      body: expect.stringContaining("mergepilot-review:head-sha"),
     }));
   });
 
