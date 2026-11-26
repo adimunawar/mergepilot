@@ -40,9 +40,9 @@ export interface ReviewerOptions {
 }
 
 function createProvider(options: ReviewerOptions): AIProvider {
-  return options.provider === "gemini"
-    ? new GeminiProvider(options.apiKey)
-    : new NvidiaProvider(options.apiKey, options.baseUrl);
+  return options.provider === "nvidia"
+    ? new NvidiaProvider(options.apiKey, options.baseUrl)
+    : new GeminiProvider(options.apiKey);
 }
 
 export async function reviewPullRequest(
