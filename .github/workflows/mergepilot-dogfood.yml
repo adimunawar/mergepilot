@@ -25,7 +25,7 @@ jobs:
           AI_PROVIDER: ${{ vars.MERGEPILOT_AI_PROVIDER || 'gemini' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
-          NVIDIA_MODEL: ${{ vars.MERGEPILOT_NVIDIA_MODEL || 'deepseek-ai/deepseek-v4-flash' }}
+          NVIDIA_MODEL: ${{ vars.MERGEPILOT_NVIDIA_MODEL || 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning' }}
         run: |
           case "$AI_PROVIDER" in
             gemini)
@@ -68,6 +68,6 @@ jobs:
         with:
           ai-provider: ${{ needs.check-secret.outputs.provider }}
           ai-api-key: ${{ needs.check-secret.outputs.provider == 'nvidia' && secrets.NVIDIA_API_KEY || secrets.GEMINI_API_KEY }}
-          ai-model: ${{ needs.check-secret.outputs.provider == 'nvidia' && (vars.MERGEPILOT_NVIDIA_MODEL || 'deepseek-ai/deepseek-v4-flash') || vars.MERGEPILOT_GEMINI_MODEL || 'gemini-3.8-flash' }}
+          ai-model: ${{ needs.check-secret.outputs.provider == 'nvidia' && (vars.MERGEPILOT_NVIDIA_MODEL || 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning') || vars.MERGEPILOT_GEMINI_MODEL || 'gemini-3.8-flash' }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           target-branches: develop
