@@ -1,6 +1,7 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { collectPullRequest } from "./github/pull-request.js";
+import { publishReview } from "./github/review-publisher.js";
 import { loadRelevantSkills } from "./skills/skill-loader.js";
 import { buildReviewContext } from "./context/context-builder.js";
 import { collectSourceFiles } from "./context/source-files.js";
@@ -81,20 +82,25 @@ async function run(): Promise<void> {
   });
 
   core.info(`Gemini review completed with ${review.findings.length} validated finding(s).`);
-  core.info(`Review summary: ${review.summary || "No summary provided."}`);
+  const summary = review.summary || "Automated review completed.";
+  core.info(`Review summary: ${summary}`);
+
   for (const finding of review.findings) {
     core.info(
       `[${finding.severity.toUpperCase()}] ${finding.filePath}:${finding.line} — ${finding.title} (confidence: ${finding.confidence})`,
     );
-    core.info(finding.description);
-    if (finding.suggestion) core.info(`Suggestion: ${finding.suggestion}`);
   }
 
+  await publishReview(octokit, snapshot, review, {
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    pullNumber: snapshot.number,
+    commitSha: snapshot.headSha,
+  });
+
+  core.info(`Published MergePilot COMMENT review for PR #${snapshot.number}.`);
   core.setOutput("finding-count", review.findings.length);
-  core.setOutput("review-summary", review.summary);
-  core.warning(
-    "GitHub review publishing is not implemented yet. Findings were generated and validated but were not posted to the pull request.",
-  );
+  core.setOutput("review-summary", summary);
 }
 
 run().catch((error: unknown) => {

@@ -6,7 +6,7 @@ MergePilot is an open-source GitHub pull request reviewer designed to help engin
 
 It starts with Google Gemini and a PStack-inspired review workflow, while keeping the provider and review methodology boundaries extensible.
 
-> Status: early development / pre-MVP. The GitHub Action runtime bootstrap is being established; AI review execution is not available yet.
+> Status: early development / pre-MVP. The current implementation collects bounded PR context, runs Gemini analysis, validates findings, and publishes advisory GitHub COMMENT reviews. Production hardening and broader integration testing are still in progress.
 
 ## Goals
 
@@ -17,11 +17,13 @@ It starts with Google Gemini and a PStack-inspired review workflow, while keepin
 - Let teams provide their own review rules and skills.
 - Keep LLM provider integration replaceable.
 
-## Current status
+## Current capabilities
 
-The Action collects pull request metadata and bounded changed-file patches, selects shared and language-specific skills, and assembles a bounded review context. It does **not** call Gemini or publish review comments yet.
+The Action collects pull request metadata and bounded changed-file patches, selects shared and language-specific skills, fetches bounded source snapshots at the exact PR head SHA, assembles review context, calls Gemini for structured findings, validates findings against added diff lines, and publishes a GitHub `COMMENT` review with inline comments.
 
-## Usage (runtime smoke test)
+MergePilot does not approve, request changes, edit code, push commits, or merge pull requests.
+
+## Usage
 
 Add this workflow to a consuming repository at `.github/workflows/mergepilot.yml`:
 
@@ -42,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run MergePilot
-        uses: adimunawar/mergepilot@feat/github-action-runtime
+        uses: adimunawar/mergepilot@develop
         with:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -50,14 +52,14 @@ jobs:
           target-branches: develop
 ```
 
-The branch reference above is for testing the runtime bootstrap. The diff collector is being developed on `feat/pr-diff-collector`; consumers should not use it as a production reviewer. Once a release is published, consumers should use a version tag such as `@v1`.
+Use a tagged release (for example `@v1`) when one is published. The `develop` ref is intended for testing and may change.
 
 Each consuming repository supplies its own Gemini API key (BYOK) through GitHub Actions secrets. Never commit API keys.
 
 ## Non-goals for the initial MVP
 
 - Automatically changing code or pushing commits.
-- Automatically approving or merging pull requests.
+- Automatically approving, requesting changes, or merging pull requests.
 - Replacing human reviewers.
 - Sending entire repositories or secrets to an LLM by default.
 - Requiring contributors to install PStack locally.
@@ -84,16 +86,18 @@ MergePilot uses a language-agnostic review baseline plus language-specific skill
 
 Initial language packs include Dart/Flutter, JavaScript/TypeScript, Python, Go, Java/Kotlin, Rust, Ruby, PHP, Swift, and C#. The shared review policy applies to all languages; language packs add ecosystem-specific checks rather than replacing it.
 
-## Review context
+## Review context and validation
 
-The context builder combines PR metadata, the PR description, selected skill instructions, optional repository guidance, and changed-file patches. It enforces character budgets, reports omitted/truncated content, and wraps repository-controlled text and diffs as untrusted input. The current stage does not yet fetch surrounding source files or resolve imports; that will be added carefully as a separate context-enrichment step.
+The context builder combines PR metadata, the PR description, selected skill instructions, optional repository guidance, changed-file patches, and bounded source snapshots of changed files. Source files are fetched at the PR head SHA. Context size is limited, and repository-controlled text is treated as untrusted input.
+
+Gemini returns structured JSON. MergePilot validates the schema, file paths, line numbers, duplicate findings, and whether the reported line is an added line in the PR diff. Only validated findings are published. Findings are advisory and should be verified by a human reviewer.
 
 ## Configuration
 
 | Input | Required | Default | Description |
 |---|---:|---|---|
 | `gemini-api-key` | Yes | — | Gemini API key supplied by the consuming repository |
-| `github-token` | Yes | — | Token used for GitHub API access |
+| `github-token` | Yes | — | Token used for GitHub API access; needs pull request write permission to publish reviews |
 | `gemini-model` | No | `gemini-2.5-flash` | Gemini model identifier |
 | `target-branches` | No | `develop` | Comma-separated target branches |
 
@@ -106,6 +110,7 @@ The context builder combines PR metadata, the PR description, selected skill ins
 - Do not run privileged workflows for untrusted fork PRs.
 - Use least-privilege GitHub permissions.
 - Validate model output before publishing comments.
+- Publish only `COMMENT` reviews; never auto-approve or request changes.
 
 See [docs/security.md](docs/security.md).
 
