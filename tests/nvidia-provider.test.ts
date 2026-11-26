@@ -32,7 +32,8 @@ describe("NvidiaProvider", () => {
     expect(request.model).toBe("catalog/model-id");
     expect(request.response_format).toEqual({ type: "json_object" });
     expect(request.chat_template_kwargs).toEqual({ enable_thinking: false });
-    expect(request.max_tokens).toBe(16_384);
+    expect(request.reasoning_budget).toBe(0);
+    expect(request.max_tokens).toBe(32_768);
     expect(request.stream).toBe(false);
     expect(request).not.toHaveProperty("reasoning_effort");
   });
@@ -63,14 +64,22 @@ describe("NvidiaProvider", () => {
     );
   });
 
-  it("rejects empty successful responses with the finish reason", async () => {
+  it("includes token diagnostics for empty successful responses", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      choices: [{ finish_reason: "length", message: { content: " " } }],
+      choices: [{
+        finish_reason: "length",
+        message: { content: " ", reasoning: "internal reasoning" },
+      }],
+      usage: {
+        prompt_tokens: 123,
+        completion_tokens: 32_768,
+        completion_tokens_details: { reasoning_tokens: 32_768 },
+      },
     }), { status: 200 })));
     const provider = new NvidiaProvider("secret-key");
 
     await expect(provider.generateReview(input)).rejects.toThrow(
-      'NVIDIA API returned an empty review response for model "catalog/model-id" (finish_reason: length).',
+      'NVIDIA API returned an empty review response for model "catalog/model-id" (finish_reason: length) [prompt_tokens=123, completion_tokens=32768, reasoning_tokens=32768, reasoning_chars=18, content_chars=1].',
     );
   });
 });
