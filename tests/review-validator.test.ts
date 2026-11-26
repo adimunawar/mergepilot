@@ -31,6 +31,7 @@ const finding = (line: number, title = "Possible defect") => ({
   severity: "high",
   title,
   description: "A concrete issue.",
+  evidence: "const added = false;",
   suggestion: "Handle this case.",
   confidence: 0.9,
 });
@@ -92,6 +93,7 @@ describe("validateReviewResult", () => {
       severity: "critical",
       title: "Arithmetic direction bug",
       description: "The function adds the discount instead of subtracting it.",
+      evidence: "return price - (price * discountPercent) / 100;",
       suggestion: "Change 'return price - (price * discountPercent) / 100;' to 'return price - (price * discountPercent) / 100;'",
       confidence: 1,
     };
