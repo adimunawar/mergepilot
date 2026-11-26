@@ -1,0 +1,27 @@
+name: MergePilot
+description: AI-powered pull request review action (runtime bootstrap)
+author: adimunawar
+
+inputs:
+  gemini-api-key:
+    description: Google Gemini API key (bring your own key)
+    required: true
+  github-token:
+    description: GitHub token used by MergePilot to read pull request data and publish reviews
+    required: true
+  gemini-model:
+    description: Gemini model identifier
+    required: false
+    default: gemini-2.5-flash
+  target-branches:
+    description: Comma-separated target branches to review
+    required: false
+    default: develop
+
+runs:
+  using: node24
+  main: action-dist/index.js
+
+branding:
+  icon: git-pull-request
+  color: blue
