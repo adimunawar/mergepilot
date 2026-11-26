@@ -51,15 +51,15 @@ export class NvidiaProvider implements AIProvider {
         messages: [
           {
             role: "system",
-            content: `${input.systemInstruction}\n\nReturn only valid JSON matching this schema:\n${JSON.stringify(input.responseSchema)}`,
+            content: `${input.systemInstruction}\n\nReturn exactly one JSON object and no prose, markdown, or reasoning. The object must match this schema:\n${JSON.stringify(input.responseSchema)}`,
           },
           { role: "user", content: input.prompt },
         ],
-        // Nemotron 3 Nano Omni API supports reasoning_budget as a top-level
-        // parameter. Keep reasoning bounded so completion tokens remain for JSON.
-        reasoning_budget: 4_096,
+        // This model emits its reasoning trace in message.content by default.
+        // Disable thinking because MergePilot expects a machine-readable review.
+        chat_template_kwargs: { enable_thinking: false },
         max_tokens: 16_384,
-        temperature: 0.1,
+        temperature: 0.2,
         top_p: 0.95,
         stream: false,
       }),
