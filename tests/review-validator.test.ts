@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateReviewResult } from "../src/review/validator.js";
+import { validateReviewResult, validateReviewResultWithDiagnostics } from "../src/review/validator.js";
 import type { PullRequestSnapshot } from "../src/github/pull-request.js";
 
 const pullRequest: PullRequestSnapshot = {
@@ -57,6 +57,25 @@ describe("validateReviewResult", () => {
     }, pullRequest);
 
     expect(result.findings).toHaveLength(1);
+  });
+
+  it("reports why model candidates were rejected", () => {
+    const { result, diagnostics } = validateReviewResultWithDiagnostics({
+      summary: "Review complete",
+      findings: [
+        finding(11),
+        { ...finding(10), title: "Context line" },
+        { ...finding(11), filePath: "missing.ts" },
+      ],
+    }, pullRequest);
+
+    expect(result.findings).toHaveLength(1);
+    expect(diagnostics).toMatchObject({
+      candidateCount: 3,
+      acceptedCount: 1,
+      rejectedNotAddedLine: 1,
+      rejectedUnknownFile: 1,
+    });
   });
 
   it("rejects malformed model output", () => {
