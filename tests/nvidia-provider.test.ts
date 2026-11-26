@@ -31,7 +31,10 @@ describe("NvidiaProvider", () => {
     const request = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string);
     expect(request.model).toBe("catalog/model-id");
     expect(request.response_format).toEqual({ type: "json_object" });
-    expect(request.reasoning_effort).toBe("low");
+    expect(request.chat_template_kwargs).toEqual({ enable_thinking: false });
+    expect(request.max_tokens).toBe(16_384);
+    expect(request.stream).toBe(false);
+    expect(request).not.toHaveProperty("reasoning_effort");
   });
 
   it("preserves HTTP status and NVIDIA error details", async () => {
