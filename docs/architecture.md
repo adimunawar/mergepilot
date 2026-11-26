@@ -12,7 +12,7 @@
 
 - GitHub adapter: fetches PR metadata, changed files, diff hunks, existing review threads, and publishes review output.
 - Context builder: selects bounded source context and repository instructions.
-- Skill loader: loads default workflow and repository-specific rules.
+- Skill registry and loader: selects language-agnostic baseline skills and language-specific skill packs based on changed file extensions; repository-specific rules can be added as a later layer.
 - Review orchestrator: coordinates context, provider, validation, and publishing.
 - LLM provider: interface for model calls; Gemini is the first adapter.
 - Finding validator: validates schema, evidence, confidence, severity, and diff anchoring.
@@ -20,6 +20,6 @@
 
 ## Planned execution stages
 
-`collect -> understand -> analyze -> verify -> publish`
+`collect -> detect languages -> load skills -> understand -> analyze -> verify -> publish`
 
 Each stage should be observable and independently testable. Provider output is untrusted and must be parsed and validated.
