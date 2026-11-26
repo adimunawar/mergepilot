@@ -1,5 +1,6 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
+import { collectPullRequest } from "./github/pull-request.js";
 
 async function run(): Promise<void> {
   const geminiApiKey = core.getInput("gemini-api-key", { required: true });
@@ -9,10 +10,6 @@ async function run(): Promise<void> {
     .split(",")
     .map((branch) => branch.trim())
     .filter(Boolean);
-
-  // Constructing the client confirms that the GitHub token is wired in.
-  // Network operations are added with the GitHub adapter.
-  github.getOctokit(githubToken);
 
   const context = github.context;
   const pullRequest = context.payload.pull_request;
@@ -33,13 +30,38 @@ async function run(): Promise<void> {
     throw new Error("A non-empty Gemini API key is required.");
   }
 
-  core.info("MergePilot GitHub Action runtime initialized.");
+  const octokit = github.getOctokit(githubToken);
+  const snapshot = await collectPullRequest(
+    octokit,
+    context.repo.owner,
+    context.repo.repo,
+    pullRequest.number,
+  );
+
+  core.info("MergePilot PR diff collection completed.");
   core.info(`Repository: ${context.repo.owner}/${context.repo.repo}`);
-  core.info(`Pull request: #${pullRequest.number}`);
-  core.info(`Target branch: ${baseBranch}`);
-  core.info(`Gemini model configured: ${geminiModel}`);
+  core.info(`Pull request: #${snapshot.number} — ${snapshot.title}`);
+  core.info(`Target branch: ${snapshot.baseRef}`);
+  core.info(`Head commit: ${snapshot.headSha}`);
+  core.info(`Changed files collected: ${snapshot.files.length}/${snapshot.totalChangedFiles}`);
+  core.info(`Patch characters collected: ${snapshot.totalPatchCharacters}`);
+  if (snapshot.filesTruncated) {
+    core.warning("Changed file list was truncated by the configured safety limit.");
+  }
+
+  for (const file of snapshot.files) {
+    const patchLength = file.patch?.length ?? 0;
+    core.info(
+      `- ${file.filename} (${file.status}, +${file.additions}/-${file.deletions}, patch: ${patchLength} chars)`,
+    );
+    if (file.patchTruncated) {
+      core.warning(`Patch was truncated for ${file.filename}.`);
+    }
+  }
+
+  core.info(`Gemini model configured for the next review stage: ${geminiModel}`);
   core.warning(
-    "Review execution is not implemented yet. This run only verifies Action configuration and PR context.",
+    "Gemini analysis and GitHub review publishing are not implemented yet. This run only collects bounded PR metadata and diffs.",
   );
 }
 

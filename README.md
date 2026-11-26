@@ -19,7 +19,7 @@ It starts with Google Gemini and a PStack-inspired review workflow, while keepin
 
 ## Current status
 
-The Action runtime currently validates its inputs and pull request context. It does **not** call Gemini, inspect diffs, or publish review comments yet. Those capabilities will be implemented in subsequent milestones.
+The Action currently collects pull request metadata and changed-file patches with bounded file and patch-size limits. It does **not** call Gemini or publish review comments yet. Those capabilities will be implemented in subsequent milestones.
 
 ## Usage (runtime smoke test)
 
@@ -50,7 +50,7 @@ jobs:
           target-branches: develop
 ```
 
-The branch reference above is for testing this development branch. Once a release is published, consumers should use a version tag such as `@v1`.
+The branch reference above is for testing the runtime bootstrap. The diff collector is being developed on `feat/pr-diff-collector`; consumers should not use it as a production reviewer. Once a release is published, consumers should use a version tag such as `@v1`.
 
 Each consuming repository supplies its own Gemini API key (BYOK) through GitHub Actions secrets. Never commit API keys.
 
