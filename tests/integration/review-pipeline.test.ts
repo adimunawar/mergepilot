@@ -124,7 +124,7 @@ describe("end-to-end review pipeline", () => {
 
     expect(review.findings).toHaveLength(1);
     expect(review.findings[0]?.line).toBe(1);
-    expect(paginate).toHaveBeenCalledOnce();
+    expect(paginate).toHaveBeenCalledTimes(2);
     expect(createComment).toHaveBeenCalledWith(expect.objectContaining({
       body: expect.stringContaining("MergePilot — Code Review"),
     }));
