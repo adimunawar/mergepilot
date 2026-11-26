@@ -48,13 +48,6 @@ export async function publishReview(
     per_page: 100,
   });
 
-  const resolvedCount = await resolveOutdatedMergePilotThreads(
-    octokit, options.owner, options.repo, options.pullNumber, result.findings,
-  );
-  if (resolvedCount > 0) {
-    // Keep the Action log useful without changing the public review summary.
-  }
-
   if (existingReviews.some((review) =>
     review.commit_id === options.commitSha && review.body?.includes(marker)
   )) {
@@ -71,6 +64,10 @@ export async function publishReview(
     availableFiles.has(finding.filePath)
   );
   const inlineFindings = findings.slice(0, MAX_INLINE_COMMENTS);
+
+  await resolveOutdatedMergePilotThreads(
+    octokit, options.owner, options.repo, options.pullNumber, inlineFindings,
+  );
   const overflowFindings = findings.slice(MAX_INLINE_COMMENTS);
   const comments = inlineFindings.map((finding) => ({
     path: finding.filePath,
