@@ -4,6 +4,8 @@ import type { ReviewResult } from "../review/types.js";
 
 type Octokit = ReturnType<typeof github.getOctokit>;
 
+const MAX_INLINE_COMMENTS = 50;
+
 export interface PublishReviewOptions {
   owner: string;
   repo: string;
@@ -21,35 +23,70 @@ function formatFinding(finding: ReviewResult["findings"][number]): string {
   return lines.join("\n\n");
 }
 
+function formatOverflowFinding(finding: ReviewResult["findings"][number]): string {
+  const lines = [
+    `- **[${finding.severity.toUpperCase()}] ${finding.filePath}:${finding.line} — ${finding.title}**`,
+    `  ${finding.description.replace(/\s+/g, " ").trim()}`,
+  ];
+  if (finding.suggestion) lines.push(`  Suggestion: ${finding.suggestion.replace(/\s+/g, " ").trim()}`);
+  return lines.join("\n");
+}
+
 export async function publishReview(
   octokit: Octokit,
   pullRequest: PullRequestSnapshot,
   result: ReviewResult,
   options: PublishReviewOptions,
 ): Promise<void> {
+  const marker = `<!-- mergepilot-review:${options.commitSha} -->`;
+  const existingReviews = await octokit.paginate(octokit.rest.pulls.listReviews, {
+    owner: options.owner,
+    repo: options.repo,
+    pull_number: options.pullNumber,
+    per_page: 100,
+  });
+
+  if (existingReviews.some((review) =>
+    review.commit_id === options.commitSha && review.body?.includes(marker)
+  )) {
+    return;
+  }
+
   const availableFiles = new Set(
     pullRequest.files
       .filter((file) => file.patch !== undefined && file.status !== "removed")
       .map((file) => file.filename),
   );
 
-  const comments = result.findings
-    .filter((finding) => availableFiles.has(finding.filePath))
-    .map((finding) => ({
-      path: finding.filePath,
-      line: finding.line,
-      side: "RIGHT" as const,
-      body: formatFinding(finding),
-    }));
+  const findings = result.findings.filter((finding) =>
+    availableFiles.has(finding.filePath)
+  );
+  const inlineFindings = findings.slice(0, MAX_INLINE_COMMENTS);
+  const overflowFindings = findings.slice(MAX_INLINE_COMMENTS);
+  const comments = inlineFindings.map((finding) => ({
+    path: finding.filePath,
+    line: finding.line,
+    side: "RIGHT" as const,
+    body: formatFinding(finding),
+  }));
 
-  const summary = [
+  const summaryLines = [
     "## MergePilot Review",
     result.summary || "Automated review completed.",
     "",
-    `**Validated findings:** ${comments.length}`,
+    `**Validated findings:** ${findings.length}`,
     "",
     "_This review is advisory. Please verify findings before making changes._",
-  ].join("\n");
+    marker,
+  ];
+
+  if (overflowFindings.length > 0) {
+    summaryLines.push(
+      "",
+      `### Additional findings (${overflowFindings.length}; no inline comment due to GitHub's 50-comment limit)`,
+      ...overflowFindings.map(formatOverflowFinding),
+    );
+  }
 
   await octokit.rest.pulls.createReview({
     owner: options.owner,
@@ -57,7 +94,7 @@ export async function publishReview(
     pull_number: options.pullNumber,
     commit_id: options.commitSha,
     event: "COMMENT",
-    body: summary,
+    body: summaryLines.join("\n"),
     comments,
   });
 }
