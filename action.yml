@@ -1,5 +1,5 @@
 name: MergePilot
-description: AI-powered pull request review action (runtime bootstrap)
+description: AI-powered pull request review and conversation action
 author: adimunawar
 
 inputs:
@@ -29,7 +29,7 @@ inputs:
     description: Legacy NVIDIA model input
     required: false
   github-token:
-    description: GitHub token used by MergePilot to access pull request data
+    description: GitHub token used by MergePilot to read pull requests and reply to review threads
     required: true
   target-branches:
     description: Comma-separated target branches to review
