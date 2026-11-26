@@ -1,5 +1,6 @@
 import type { PullRequestSnapshot } from "../github/pull-request.js";
 import type { SkillLoadResult } from "../skills/types.js";
+import type { SourceFileCollection } from "./source-files.js";
 
 export interface ReviewContextOptions {
   maxTotalCharacters?: number;
@@ -12,6 +13,8 @@ export interface ReviewContext {
   characterCount: number;
   includedFiles: string[];
   omittedFiles: string[];
+  includedSourceFiles: string[];
+  omittedSourceFiles: string[];
   includedSkills: string[];
   truncated: boolean;
 }
@@ -19,5 +22,6 @@ export interface ReviewContext {
 export interface ReviewContextInput {
   pullRequest: PullRequestSnapshot;
   skills: SkillLoadResult;
+  sourceFiles?: SourceFileCollection;
   repositoryInstructions?: string;
 }
