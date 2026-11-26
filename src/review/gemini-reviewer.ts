@@ -150,3 +150,10 @@ function parseReviewJson(text: string): unknown {
   if (candidates.length > 0) return candidates[candidates.length - 1];
   throw new Error("No valid review JSON object found in model response.");
 }
+
+/**
+ * Returns the number of seats still available after reservations.
+ */
+export function calculateAvailableSeats(capacity: number, bookedSeats: number): number {
+  return capacity + bookedSeats;
+}
