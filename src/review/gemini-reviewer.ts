@@ -39,7 +39,7 @@ export interface ReviewerOptions {
   baseUrl?: string | undefined;
 }
 
-function createProvider(options: ReviewerOptions): AIProvider {
+export function createAIProvider(options: ReviewerOptions): AIProvider {
   return options.provider === "nvidia"
     ? new NvidiaProvider(options.apiKey, options.baseUrl)
     : new GeminiProvider(options.apiKey);
@@ -50,7 +50,7 @@ export async function reviewPullRequest(
   pullRequest: PullRequestSnapshot,
   options: ReviewerOptions,
 ): Promise<ReviewResult> {
-  const provider = createProvider(options);
+  const provider = createAIProvider(options);
   const systemInstruction = [
     "You are MergePilot, a conservative senior software engineer reviewing a GitHub pull request.",
     "Return only findings that identify concrete bugs, regressions, security issues, or correctness problems.",
