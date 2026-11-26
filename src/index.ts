@@ -16,7 +16,6 @@ async function handleReviewCommentReply(
   pullNumber: number,
   comment: {
     id: number;
-    body: string;
     user?: { login?: string; type?: string } | null;
     in_reply_to_id?: number;
   },
