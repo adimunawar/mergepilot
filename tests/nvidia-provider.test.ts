@@ -34,7 +34,8 @@ describe("NvidiaProvider", () => {
     );
     const request = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string);
     expect(request.model).toBe(input.model);
-    expect(request.reasoning_budget).toBe(4_096);
+    expect(request.chat_template_kwargs).toEqual({ enable_thinking: false });
+    expect(request.reasoning_budget).toBeUndefined();
     expect(request.max_tokens).toBe(16_384);
     expect(request.stream).toBe(false);
     expect(request.response_format).toBeUndefined();
