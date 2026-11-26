@@ -78,6 +78,49 @@ describe("validateReviewResult", () => {
     });
   });
 
+
+  it("rejects a stale change-to-identical-code suggestion already present in the current source", () => {
+    const currentSource = [
+      "export function applyDiscount(price: number, discountPercent: number): number {",
+      "  return price - (price * discountPercent) / 100;",
+      "}",
+    ].join("\\n");
+    const staleFinding = {
+      filePath: "src/app.ts",
+      line: 11,
+      endLine: 11,
+      severity: "critical",
+      title: "Arithmetic direction bug",
+      description: "The function adds the discount instead of subtracting it.",
+      suggestion: "Change 'return price - (price * discountPercent) / 100;' to 'return price - (price * discountPercent) / 100;'",
+      confidence: 1,
+    };
+    const { result, diagnostics } = validateReviewResultWithDiagnostics({
+      summary: "Review complete",
+      findings: [staleFinding],
+    }, pullRequest, [{ filename: "src/app.ts", content: currentSource }]);
+
+    expect(result.findings).toHaveLength(0);
+    expect(diagnostics).toMatchObject({
+      candidateCount: 1,
+      acceptedCount: 0,
+      rejectedSuggestionAlreadyPresent: 1,
+    });
+  });
+
+  it("keeps findings when the suggested replacement is not already present", () => {
+    const { result, diagnostics } = validateReviewResultWithDiagnostics({
+      summary: "Review complete",
+      findings: [{
+        ...finding(11),
+        suggestion: "Change 'const added = false;' to 'const added = true;'",
+      }],
+    }, pullRequest, [{ filename: "src/app.ts", content: "const added = false;" }]);
+
+    expect(result.findings).toHaveLength(1);
+    expect(diagnostics.rejectedSuggestionAlreadyPresent).toBe(0);
+  });
+
   it("rejects malformed model output", () => {
     expect(() => validateReviewResult({ findings: "not-an-array" }, pullRequest)).toThrow();
   });
